@@ -5,17 +5,20 @@ import { Input } from '../../components/common/Input';
 import { apiClient } from '../../services/apiClient';
 import { useToast } from '../../components/common/Toast';
 
+import { Medicine } from '../../types';
+
 interface AddMedicineModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  medicine?: Medicine | null; // If provided, we are in Edit mode
 }
 
-export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onClose, onSuccess, medicine }) => {
   const [loading, setLoading] = useState(false);
   const { addToast } = useToast();
   
-  const [formData, setFormData] = useState({
+  const initialData = {
     name: '',
     generic_name: '',
     medicine_type: 'tablet',
@@ -31,7 +34,34 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onCl
     shelf_number: '',
     requires_prescription: false,
     is_active: true
-  });
+  };
+
+  const [formData, setFormData] = useState(initialData);
+
+  // Sync form data when medicine prop changes (for editing)
+  React.useEffect(() => {
+    if (medicine) {
+      setFormData({
+        name: medicine.name || '',
+        generic_name: medicine.generic_name || '',
+        medicine_type: medicine.medicine_type || 'tablet',
+        manufacturer: medicine.manufacturer || '',
+        strength: medicine.strength || '',
+        pack_size: medicine.pack_size || '',
+        purchase_price: medicine.purchase_price || '',
+        mrp: medicine.mrp || '',
+        selling_price: medicine.selling_price || '',
+        quantity_in_stock: medicine.quantity_in_stock?.toString() || '0',
+        reorder_level: medicine.reorder_level?.toString() || '10',
+        rack_number: medicine.rack_number || '',
+        shelf_number: '', // Add if available in type
+        requires_prescription: !!medicine.requires_prescription,
+        is_active: true // Standard default
+      });
+    } else {
+      setFormData(initialData);
+    }
+  }, [medicine, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -47,30 +77,17 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onCl
     e.preventDefault();
     setLoading(true);
     try {
-      await apiClient.post('/medicines/medicines/', formData);
-      addToast('Medicine added successfully!', 'success');
+      if (medicine?.id) {
+        await apiClient.put(`/medicines/medicines/${medicine.id}/`, formData);
+        addToast('Medicine updated successfully!', 'success');
+      } else {
+        await apiClient.post('/medicines/medicines/', formData);
+        addToast('Medicine added successfully!', 'success');
+      }
       onSuccess();
       onClose();
-      // Reset form
-      setFormData({
-        name: '',
-        generic_name: '',
-        medicine_type: 'tablet',
-        manufacturer: '',
-        strength: '',
-        pack_size: '',
-        purchase_price: '',
-        mrp: '',
-        selling_price: '',
-        quantity_in_stock: '0',
-        reorder_level: '10',
-        rack_number: '',
-        shelf_number: '',
-        requires_prescription: false,
-        is_active: true
-      });
     } catch (error: any) {
-      addToast(error.message || 'Failed to add medicine', 'error');
+      addToast(error.message || 'Failed to save medicine', 'error');
     } finally {
       setLoading(false);
     }
@@ -83,7 +100,9 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onCl
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add New Medicine</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            {medicine ? 'Edit Medicine' : 'Add New Medicine'}
+          </h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500">
             <X size={20} />
           </button>

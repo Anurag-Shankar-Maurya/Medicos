@@ -7,17 +7,74 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { Pagination } from '../../components/common/Pagination';
 import { Spinner } from '../../components/common/Spinner';
 import { useToast } from '../../components/common/Toast';
-import { Plus, Search, Filter, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, AlertCircle, Edit2, Trash2, Eye } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { AddMedicineModal } from './AddMedicineModal';
+import { MedicineDetailModal } from './MedicineDetailModal';
+import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 export const MedicineList = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Selection States
+  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleOpenAdd = () => {
+    setSelectedMedicine(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (medicine: Medicine) => {
+    setSelectedMedicine(medicine);
+    setIsModalOpen(true);
+    setActiveMenu(null);
+  };
+
+  const handleOpenDetail = (medicine: Medicine) => {
+    setSelectedMedicine(medicine);
+    setIsDetailOpen(true);
+    setActiveMenu(null);
+  };
+
+  const handleOpenDelete = (medicine: Medicine) => {
+    setSelectedMedicine(medicine);
+    setIsDeleteOpen(true);
+    setActiveMenu(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedMedicine) return;
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/medicines/medicines/${selectedMedicine.id}/`);
+      addToast('Medicine deleted successfully', 'success');
+      setIsDeleteOpen(false);
+      fetchMedicines(currentPage, searchQuery);
+    } catch (error: any) {
+      addToast(error.message || 'Failed to delete medicine', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Get URL Params
   const pageParam = searchParams.get('page');
@@ -74,7 +131,7 @@ export const MedicineList = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Inventory</h1>
           <p className="text-slate-500 dark:text-slate-400">Manage medicines, stock levels, and pricing.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} leftIcon={<Plus size={18} />}>Add Medicine</Button>
+        <Button onClick={handleOpenAdd} leftIcon={<Plus size={18} />}>Add Medicine</Button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
@@ -154,9 +211,45 @@ export const MedicineList = () => {
                     <div className="text-xs text-slate-500 line-through">${item.mrp}</div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                      <MoreHorizontal size={20} />
-                    </button>
+                    <div className="relative inline-block text-left">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenu(activeMenu === item.id ? null : item.id);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                      >
+                        <MoreHorizontal size={20} />
+                      </button>
+
+                      {activeMenu === item.id && (
+                        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-50 overflow-hidden border border-slate-200 dark:border-slate-700">
+                          <div className="py-1" role="menu">
+                            <button
+                              onClick={() => handleOpenDetail(item)}
+                              className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              role="menuitem"
+                            >
+                              <Eye size={16} className="mr-3 text-slate-400" /> View Details
+                            </button>
+                            <button
+                              onClick={() => handleOpenEdit(item)}
+                              className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              role="menuitem"
+                            >
+                              <Edit2 size={16} className="mr-3 text-slate-400" /> Edit Medicine
+                            </button>
+                            <button
+                              onClick={() => handleOpenDelete(item)}
+                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              role="menuitem"
+                            >
+                              <Trash2 size={16} className="mr-3" /> Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -177,6 +270,22 @@ export const MedicineList = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSuccess={() => fetchMedicines(currentPage, searchQuery)}
+        medicine={selectedMedicine}
+      />
+
+      <MedicineDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        medicine={selectedMedicine}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        loading={deleting}
+        title="Delete Medicine"
+        message={`Are you sure you want to delete ${selectedMedicine?.name}? This action cannot be undone.`}
       />
     </div>
   );
