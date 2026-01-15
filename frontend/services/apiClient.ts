@@ -109,7 +109,7 @@ class ApiClient {
         if (response.status === 401) {
             localStorage.removeItem('auth_token');
             sessionStorage.removeItem('auth_token');
-            window.location.hash = '#/login';
+            window.location.pathname = '/login';
             throw new Error('Session expired. Please login again.');
         }
         if (response.status === 403) throw new Error('You do not have permission to perform this action.');
