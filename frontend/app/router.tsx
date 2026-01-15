@@ -4,6 +4,7 @@ import { Layout } from '../components/layout/Layout';
 import { LoginPage } from '../features/auth/LoginPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { MedicineList } from '../features/inventory/MedicineList';
+import { BillingPage } from '../features/billing/BillingPage';
 import { useAuth } from './providers';
 
 // Guard for protected routes
@@ -34,8 +35,8 @@ export const AppRouter = () => {
           </ProtectedRoute>
         }>
           <Route index element={<DashboardPage />} />
-          <Route path="medicines" element={<MedicineList />} />
-          <Route path="billing" element={<div className="p-10 text-center text-slate-500">POS Module Coming Soon</div>} />
+          <Route path="inventory" element={<MedicineList />} />
+          <Route path="billing" element={<BillingPage />} />
           <Route path="sales" element={<div className="p-10 text-center text-slate-500">Sales History Module Coming Soon</div>} />
           <Route path="reports" element={<div className="p-10 text-center text-slate-500">Reports Module Coming Soon</div>} />
           <Route path="users" element={<div className="p-10 text-center text-slate-500">User Management Module Coming Soon</div>} />

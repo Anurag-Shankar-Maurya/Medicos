@@ -1,8 +1,9 @@
-from rest_framework import generics, viewsets, status
+from rest_framework import generics, viewsets, status, serializers
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Q, F, Sum, Count
+from django.db import transaction
 from django.utils import timezone
 from .models import (
     Category, Medicine, Batch, Purchase, PurchaseItem,
@@ -201,6 +202,54 @@ class SaleViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(sale_date__lte=end_date)
 
         return queryset.order_by('-sale_date')
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        items_data = data.pop('items', [])
+        
+        # Calculate totals from backend if needed, but here we trust frontend with validation
+        sale_serializer = self.get_serializer(data=data)
+        sale_serializer.is_valid(raise_exception=True)
+        sale = sale_serializer.save(created_by=self.request.user)
+
+        for item in items_data:
+            medicine = Medicine.objects.get(id=item['medicine_id'])
+            
+            # Find the best batch (FIFO - First In First Out)
+            batch = Batch.objects.filter(
+                medicine=medicine, 
+                quantity_in_stock__gt=0,
+                expiry_date__gt=timezone.now().date()
+            ).order_by('expiry_date').first()
+            
+            if not batch:
+                raise serializers.ValidationError(f"No active stock for {medicine.name}")
+            
+            qty = int(item['quantity'])
+            if batch.quantity_in_stock < qty:
+                 # In a real app, we might split across multiple batches
+                 raise serializers.ValidationError(f"Insufficient stock in earliest batch for {medicine.name}")
+
+            SaleItem.objects.create(
+                sale=sale,
+                medicine=medicine,
+                batch=batch,
+                quantity=qty,
+                selling_price=item['price'],
+                mrp=batch.mrp,
+                batch_number=batch.batch_number,
+                gst_percentage=medicine.gst_percentage
+            )
+            
+            # Update stock
+            batch.quantity_in_stock -= qty
+            batch.save()
+            
+            medicine.quantity_in_stock -= qty
+            medicine.save()
+
+        return Response(sale_serializer.data, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer):
         """Set created_by when creating sale"""

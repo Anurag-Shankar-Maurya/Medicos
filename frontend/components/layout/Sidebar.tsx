@@ -17,7 +17,7 @@ export const Sidebar = () => {
 
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/medicines', icon: <Pill size={20} />, label: 'Inventory' },
+    { to: '/inventory', icon: <Pill size={20} />, label: 'Inventory' },
     { to: '/billing', icon: <ShoppingCart size={20} />, label: 'Billing / POS' },
     { to: '/sales', icon: <FileText size={20} />, label: 'Sales History' },
     { to: '/reports', icon: <Activity size={20} />, label: 'Reports' },
