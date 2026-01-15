@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 
     # Third party apps
     'rest_framework',
+    'drf_yasg',
 
     # Local apps
     'apps.medicines',
@@ -127,3 +128,19 @@ STATIC_URL = 'static/'
 # Media files configuration
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# DRF-YASG settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    },
+    'USE_SESSION_AUTH': False,
+}
+
+REDOC_SETTINGS = {
+    'LAZY_RENDERING': False,
+}

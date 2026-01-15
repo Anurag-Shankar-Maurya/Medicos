@@ -149,7 +149,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaleItem
         fields = [
-            'id', 'sale', 'medicine', 'batch', 'quantity',
+            'id', 'sale', 'medicine', 'medicine_name', 'batch', 'quantity',
             'selling_price', 'mrp', 'batch_number', 'gst_percentage',
             'discount_percentage', 'subtotal', 'discount_amount',
             'tax_amount', 'total'
