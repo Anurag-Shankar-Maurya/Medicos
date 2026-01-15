@@ -321,7 +321,7 @@ class Sale(models.Model):
         related_name='prescriptions'
     )
     prescription_number = models.CharField(max_length=50, blank=True)
-    prescription_image = models.ImageField(upload_to='prescriptions/', blank=True)
+    prescription_image = models.ImageField(upload_to='media/prescriptions/', blank=True)
     
     # Payment details
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
