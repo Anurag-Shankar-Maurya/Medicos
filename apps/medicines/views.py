@@ -62,9 +62,23 @@ class MedicineViewSet(viewsets.ModelViewSet):
 
         return queryset.order_by('name')
 
+    @transaction.atomic
     def perform_create(self, serializer):
-        """Set created_by when creating medicine"""
-        serializer.save(created_by=self.request.user)
+        """Set created_by when creating medicine and create initial batch if stock provided"""
+        medicine = serializer.save(created_by=self.request.user)
+        
+        # Create initial batch if there's stock but no batches
+        if medicine.quantity_in_stock > 0:
+            Batch.objects.create(
+                medicine=medicine,
+                batch_number="INITIAL-" + timezone.now().strftime("%Y%m%d"),
+                quantity=medicine.quantity_in_stock,
+                purchase_price=medicine.purchase_price,
+                mrp=medicine.mrp,
+                manufacturing_date=timezone.now().date(),
+                expiry_date=timezone.now().date() + timezone.timedelta(days=730), # 2 years default
+                is_active=True
+            )
 
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
@@ -205,13 +219,40 @@ class SaleViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        data = request.data
+        data = request.data.copy()
         items_data = data.pop('items', [])
+        
+        # Add invoice number if not present
+        if not data.get('invoice_number'):
+            import uuid
+            data['invoice_number'] = f"INV-{uuid.uuid4().hex[:8].upper()}"
+        
+        # Ensure totals are present for validation
+        if not data.get('subtotal') and data.get('total_amount'):
+             total = float(data.get('total_amount'))
+             data['subtotal'] = f"{total / 1.12:.2f}"
+             data['tax_amount'] = f"{total - float(data['subtotal']):.2f}"
+        
+        if not data.get('amount_paid'):
+            data['amount_paid'] = data.get('total_amount', '0.00')
+
+        if data.get('customer_name') and not data.get('customer'):
+            data['notes'] = f"Customer: {data.get('customer_name')}\n" + (data.get('notes') or "")
         
         # Calculate totals from backend if needed, but here we trust frontend with validation
         sale_serializer = self.get_serializer(data=data)
-        sale_serializer.is_valid(raise_exception=True)
-        sale = sale_serializer.save(created_by=self.request.user)
+        if not sale_serializer.is_valid():
+            print(f"DEBUG: Sale validation errors: {sale_serializer.errors}")
+            return Response(sale_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Pass the backend-generated fields during save
+        sale = sale_serializer.save(
+            created_by=self.request.user,
+            invoice_number=data.get('invoice_number'),
+            subtotal=data.get('subtotal', '0.00'),
+            tax_amount=data.get('tax_amount', '0.00'),
+            amount_paid=data.get('amount_paid', '0.00')
+        )
 
         for item in items_data:
             medicine = Medicine.objects.get(id=item['medicine_id'])
@@ -219,7 +260,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             # Find the best batch (FIFO - First In First Out)
             batch = Batch.objects.filter(
                 medicine=medicine, 
-                quantity_in_stock__gt=0,
+                quantity__gt=0,
                 expiry_date__gt=timezone.now().date()
             ).order_by('expiry_date').first()
             
@@ -227,7 +268,7 @@ class SaleViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(f"No active stock for {medicine.name}")
             
             qty = int(item['quantity'])
-            if batch.quantity_in_stock < qty:
+            if batch.quantity < qty:
                  # In a real app, we might split across multiple batches
                  raise serializers.ValidationError(f"Insufficient stock in earliest batch for {medicine.name}")
 
@@ -243,7 +284,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             )
             
             # Update stock
-            batch.quantity_in_stock -= qty
+            batch.quantity -= qty
             batch.save()
             
             medicine.quantity_in_stock -= qty

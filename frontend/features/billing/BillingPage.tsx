@@ -6,16 +6,13 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { useToast } from '../../components/common/Toast';
 import { Spinner } from '../../components/common/Spinner';
-
-interface CartItem extends Medicine {
-  quantity: number;
-}
+import { useCart } from '../../app/CartContext';
 
 export const BillingPage = () => {
+  const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCart();
   const [searchValue, setSearchValue] = useState('');
   const [searchResults, setSearchResults] = useState<Medicine[]>([]);
   const [searching, setSearching] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'upi'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,40 +34,6 @@ export const BillingPage = () => {
     } finally {
       setSearching(false);
     }
-  };
-
-  const addToCart = (medicine: Medicine) => {
-    const existing = cart.find(item => item.id === medicine.id);
-    if (existing) {
-      if (existing.quantity >= medicine.quantity_in_stock) {
-        addToast("Cannot add more than available stock", "warning");
-        return;
-      }
-      setCart(cart.map(item => item.id === medicine.id ? { ...item, quantity: item.quantity + 1 } : item));
-    } else {
-      setCart([...cart, { ...medicine, quantity: 1 }]);
-    }
-    setSearchValue('');
-    setSearchResults([]);
-  };
-
-  const updateQuantity = (id: number, delta: number) => {
-    setCart(cart.map(item => {
-      if (item.id === id) {
-        const newQty = item.quantity + delta;
-        if (newQty < 1) return item;
-        if (newQty > item.quantity_in_stock) {
-            addToast("Limit reached - stock currently at " + item.quantity_in_stock, "warning");
-            return item;
-        }
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
-  };
-
-  const removeFromCart = (id: number) => {
-    setCart(cart.filter(item => item.id !== id));
   };
 
   const calculateSubtotal = () => cart.reduce((sum, item) => sum + (parseFloat(item.selling_price) * item.quantity), 0);
@@ -98,13 +61,19 @@ export const BillingPage = () => {
 
       await apiClient.post('/medicines/sales/', saleData);
       addToast("Sale completed successfully!", "success");
-      setCart([]);
+      clearCart();
       setCustomerName('');
     } catch (error: any) {
       addToast(error.message || "Checkout failed", "error");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const onSelectFromSearch = (m: Medicine) => {
+    addToCart(m);
+    setSearchValue('');
+    setSearchResults([]);
   };
 
   return (
@@ -131,7 +100,7 @@ export const BillingPage = () => {
                 {searchResults.map(m => (
                   <button
                     key={m.id}
-                    onClick={() => addToCart(m)}
+                    onClick={() => onSelectFromSearch(m)}
                     className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex justify-between items-center transition-colors border-b last:border-0 border-slate-100 dark:border-slate-800"
                   >
                     <div>

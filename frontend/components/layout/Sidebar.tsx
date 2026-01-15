@@ -11,14 +11,16 @@ import {
   Activity
 } from 'lucide-react';
 import { useAuth } from '../../app/providers';
+import { useCart } from '../../app/CartContext';
 
 export const Sidebar = () => {
   const { logout } = useAuth();
+  const { cartCount } = useCart();
 
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: '/inventory', icon: <Pill size={20} />, label: 'Inventory' },
-    { to: '/billing', icon: <ShoppingCart size={20} />, label: 'Billing / POS' },
+    { to: '/billing', icon: <ShoppingCart size={20} />, label: 'Billing / POS', badge: cartCount > 0 ? cartCount : null },
     { to: '/sales', icon: <FileText size={20} />, label: 'Sales History' },
     { to: '/reports', icon: <Activity size={20} />, label: 'Reports' },
     { to: '/users', icon: <Users size={20} />, label: 'Staff' },
@@ -46,7 +48,12 @@ export const Sidebar = () => {
             `}
           >
             <span className="mr-3">{item.icon}</span>
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {item.badge && (
+               <span className="ml-2 px-2 py-0.5 text-[10px] font-bold bg-primary-600 text-white rounded-full">
+                  {item.badge}
+               </span>
+            )}
           </NavLink>
         ))}
       </nav>

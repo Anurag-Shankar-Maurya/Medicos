@@ -187,7 +187,10 @@ class SaleSerializer(serializers.ModelSerializer):
             'notes', 'created_at', 'updated_at', 'created_by',
             'created_by_name', 'items'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'created_by', 'change_returned']
+        read_only_fields = [
+            'invoice_number', 'subtotal', 'tax_amount', 'amount_paid',
+            'change_returned', 'created_at', 'updated_at', 'created_by'
+        ]
 
     def get_change_returned(self, obj):
         return obj.change_returned

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { ToastProvider } from '../components/common/Toast';
+import { CartProvider } from './CartContext';
 
 // --- Theme Context ---
 type Theme = 'light' | 'dark' | 'system';
@@ -88,11 +89,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!isAuthenticated }}>
       <ToastProvider>
-        {isAuthenticated === null ? (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-        ) : children}
+        <CartProvider>
+          {isAuthenticated === null ? (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : children}
+        </CartProvider>
       </ToastProvider>
     </AuthContext.Provider>
   );
