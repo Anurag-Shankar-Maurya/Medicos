@@ -9,10 +9,12 @@ import { Spinner } from '../../components/common/Spinner';
 import { useToast } from '../../components/common/Toast';
 import { Plus, Search, Filter, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { AddMedicineModal } from './AddMedicineModal';
 
 export const MedicineList = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
@@ -72,7 +74,7 @@ export const MedicineList = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Inventory</h1>
           <p className="text-slate-500 dark:text-slate-400">Manage medicines, stock levels, and pricing.</p>
         </div>
-        <Button leftIcon={<Plus size={18} />}>Add Medicine</Button>
+        <Button onClick={() => setIsModalOpen(true)} leftIcon={<Plus size={18} />}>Add Medicine</Button>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
@@ -170,6 +172,12 @@ export const MedicineList = () => {
             itemsPerPage={ITEMS_PER_PAGE}
         />
       </div>
+
+      <AddMedicineModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={() => fetchMedicines(currentPage, searchQuery)}
+      />
     </div>
   );
 };
