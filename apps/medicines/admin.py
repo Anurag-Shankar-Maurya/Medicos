@@ -84,7 +84,7 @@ class MedicineAdmin(admin.ModelAdmin):
                   'is_schedule_h', 'is_schedule_x', 'supplier')
     search_fields = ('name', 'generic_name', 'manufacturer', 'composition',
                     'barcode', 'sku')
-    readonly_fields = ('created_at', 'updated_at', 'profit_margin')
+    readonly_fields = ('created_at', 'updated_at', 'profit_margin', 'needs_reorder_status', 'is_overstocked_status')
 
     fieldsets = (
         ('Basic Information', {

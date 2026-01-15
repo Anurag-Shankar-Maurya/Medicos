@@ -139,9 +139,15 @@ class Medicine(models.Model):
 
     @property
     def profit_margin(self):
-        if self.purchase_price > 0:
-            return ((self.selling_price - self.purchase_price) / self.purchase_price) * 100
-        return 0
+        """Return profit margin percentage safely when prices are present."""
+        if self.purchase_price is None or self.selling_price is None:
+            return Decimal('0.00')
+        try:
+            if self.purchase_price > 0:
+                return ((self.selling_price - self.purchase_price) / self.purchase_price) * 100
+        except (TypeError, InvalidOperation):
+            return Decimal('0.00')
+        return Decimal('0.00')
 
     class Meta:
         ordering = ['name']
@@ -175,17 +181,22 @@ class Batch(models.Model):
 
     @property
     def is_expired(self):
+        if not self.expiry_date:
+            return False
         return self.expiry_date < timezone.now().date()
 
     @property
     def days_to_expiry(self):
+        if not self.expiry_date:
+            return None
         delta = self.expiry_date - timezone.now().date()
         return delta.days
 
     @property
     def is_near_expiry(self):
         """Check if batch expires within 90 days"""
-        return 0 < self.days_to_expiry <= 90
+        d = self.days_to_expiry
+        return d is not None and 0 < d <= 90
 
     class Meta:
         verbose_name_plural = "Batches"
