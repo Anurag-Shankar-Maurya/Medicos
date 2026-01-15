@@ -20,7 +20,7 @@ class MedicineAdmin(admin.ModelAdmin):
                     'selling_price', 'mrp', 'needs_reorder_status',
                     'is_overstocked_status', 'is_active')
     list_filter = ('medicine_type', 'is_active', 'requires_prescription',
-                  'is_schedule_h', 'is_schedule_x', 'supplier')
+                  'is_schedule_h', 'is_schedule_x')
     search_fields = ('name', 'generic_name', 'manufacturer', 'composition',
                     'barcode', 'sku')
     readonly_fields = ('created_at', 'updated_at', 'profit_margin', 
@@ -31,8 +31,8 @@ class MedicineAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'generic_name', 'medicine_type', 
-                      'manufacturer', 'supplier')
+            'fields': ('name', 'generic_name', 'medicine_type',
+                      'manufacturer', 'supplier_name')
         }),
         ('Product Details', {
             'fields': ('composition', 'strength', 'pack_size', 'barcode', 'sku')
@@ -66,27 +66,26 @@ class MedicineAdmin(admin.ModelAdmin):
     is_overstocked_status.boolean = True
     is_overstocked_status.short_description = "Overstocked"
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('supplier')
+
 
 
 class SaleAdmin(admin.ModelAdmin):
     """Admin for sales transactions"""
 
-    list_display = ('invoice_number', 'customer', 'sale_date', 'total_amount',
-                   'payment_method', 'amount_paid', 'doctor', 'created_by')
-    list_filter = ('payment_method', 'sale_date', 'doctor')
-    search_fields = ('invoice_number', 'customer__name', 'customer__phone',
-                    'prescription_number', 'doctor__name')
+    list_display = ('invoice_number', 'customer_name', 'sale_date', 'total_amount',
+                   'payment_method', 'amount_paid', 'doctor_name', 'created_by')
+    list_filter = ('payment_method', 'sale_date')
+    search_fields = ('invoice_number', 'customer_name', 'customer_contact',
+                    'prescription_number', 'doctor_name')
     readonly_fields = ('change_returned', 'created_at', 'updated_at')
     date_hierarchy = 'sale_date'
 
     fieldsets = (
         (None, {
-            'fields': ('invoice_number', 'customer', 'sale_date')
+            'fields': ('invoice_number', 'customer_name', 'customer_contact', 'sale_date')
         }),
         ('Prescription Details', {
-            'fields': ('doctor', 'prescription_number', 'prescription_image')
+            'fields': ('doctor_name', 'doctor_registration', 'prescription_number', 'prescription_image')
         }),
         ('Financial Details', {
             'fields': ('subtotal', 'tax_amount', 'discount', 'total_amount')
@@ -108,7 +107,7 @@ class SaleAdmin(admin.ModelAdmin):
     inlines = [SaleItemInline]
 
     # Use raw_id_fields for better performance with large datasets
-    raw_id_fields = ('customer', 'doctor', 'created_by')
+    raw_id_fields = ('created_by',)
 
 
 # Register remaining models

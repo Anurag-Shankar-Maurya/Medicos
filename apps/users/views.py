@@ -5,11 +5,8 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from .models import User, Supplier, Customer, Doctor
-from .serializers import (
-    UserSerializer, SupplierSerializer,
-    CustomerSerializer, DoctorSerializer
-)
+from .models import User
+from .serializers import UserSerializer
 
 
 # User Views
@@ -45,57 +42,6 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         return User.objects.filter(id=user.id)
 
 
-# Supplier Views
-class SupplierListCreateView(generics.ListCreateAPIView):
-    """List all suppliers or create a new supplier"""
-    queryset = Supplier.objects.all()
-    serializer_class = SupplierSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        """Set created_by when creating supplier"""
-        serializer.save(created_by=self.request.user)
-
-
-class SupplierDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update or delete a supplier"""
-    queryset = Supplier.objects.all()
-    serializer_class = SupplierSerializer
-    permission_classes = [IsAuthenticated]
-
-
-# Customer Views
-class CustomerListCreateView(generics.ListCreateAPIView):
-    """List all customers or create a new customer"""
-    queryset = Customer.objects.all()
-    serializer_class = CustomerSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        """Set created_by when creating customer"""
-        serializer.save(created_by=self.request.user)
-
-
-class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update or delete a customer"""
-    queryset = Customer.objects.all()
-    serializer_class = CustomerSerializer
-    permission_classes = [IsAuthenticated]
-
-
-# Doctor Views
-class DoctorListCreateView(generics.ListCreateAPIView):
-    """List all doctors or create a new doctor"""
-    queryset = Doctor.objects.all()
-    serializer_class = DoctorSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class DoctorDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update or delete a doctor"""
-    queryset = Doctor.objects.all()
-    serializer_class = DoctorSerializer
-    permission_classes = [IsAuthenticated]
 
 
 # Authentication Views

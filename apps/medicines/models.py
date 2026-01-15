@@ -27,13 +27,8 @@ class Medicine(models.Model):
     medicine_type = models.CharField(max_length=20, choices=MEDICINE_TYPES)
     manufacturer = models.CharField(max_length=200)
     
-    # Supplier relationship - ensuring dependency on users app
-    supplier = models.ForeignKey(
-        'users.Supplier',
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='medicines'
-    )
+    # Supplier information - simplified to CharField
+    supplier_name = models.CharField(max_length=200, blank=True)
     
     # Product details
     composition = models.TextField(blank=True, help_text="Chemical composition")
@@ -147,23 +142,13 @@ class Sale(models.Model):
     ]
 
     invoice_number = models.CharField(max_length=50, unique=True)
-    customer = models.ForeignKey(
-        'users.Customer',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='sales'
-    )
+    customer_name = models.CharField(max_length=200, blank=True)
+    customer_contact = models.CharField(max_length=15, blank=True)
     sale_date = models.DateTimeField(default=timezone.now)
     
     # Prescription details
-    doctor = models.ForeignKey(
-        'users.Doctor',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='prescriptions'
-    )
+    doctor_name = models.CharField(max_length=200, blank=True)
+    doctor_registration = models.CharField(max_length=50, blank=True)
     prescription_number = models.CharField(max_length=50, blank=True)
     prescription_image = models.ImageField(upload_to='media/prescriptions/', blank=True)
     
