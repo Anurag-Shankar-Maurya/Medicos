@@ -10,7 +10,7 @@ import { useToast } from '../../components/common/Toast';
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('remember_choice') === 'true');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { addToast } = useToast();
@@ -22,6 +22,14 @@ export const LoginPage = () => {
 
     try {
       const res = await apiClient.post<any>('/users/auth/login/', { username, password });
+      
+      // Store the preference for the next time the login page is visited
+      if (rememberMe) {
+        localStorage.setItem('remember_choice', 'true');
+      } else {
+        localStorage.removeItem('remember_choice');
+      }
+
       login(res.token, res.user, rememberMe);
       addToast('Successfully logged in!', 'success');
       navigate('/');
