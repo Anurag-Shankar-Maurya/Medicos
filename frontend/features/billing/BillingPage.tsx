@@ -29,15 +29,20 @@ export const BillingPage = () => {
     try {
       const res = await apiClient.get<PaginatedResponse<Medicine>>('/medicines/medicines/', { search: val });
       setSearchResults(res.results.filter(m => m.quantity_in_stock > 0));
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      addToast(e.message || "Failed to search medicines", "error");
     } finally {
       setSearching(false);
     }
   };
 
   const calculateSubtotal = () => cart.reduce((sum, item) => sum + (parseFloat(item.selling_price) * item.quantity), 0);
-  const calculateTax = () => calculateSubtotal() * 0.12; // 12% GST fallback
+  const calculateTax = () => cart.reduce((sum, item) => {
+    const itemSubtotal = parseFloat(item.selling_price) * item.quantity;
+    const gstRate = item.gst_percentage || 12; // Fallback to 12 if not set
+    return sum + (itemSubtotal * gstRate / 100);
+  }, 0);
   const calculateTotal = () => calculateSubtotal() + calculateTax();
 
   const handleCheckout = async () => {

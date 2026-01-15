@@ -219,78 +219,114 @@ class SaleViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
+        from decimal import Decimal
         data = request.data.copy()
         items_data = data.pop('items', [])
         
-        # Add invoice number if not present
+        if not items_data:
+            return Response({"error": "No items in sale"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Validation Logic
+        items_to_process = []
+        total_subtotal = Decimal('0.00')
+        total_tax = Decimal('0.00')
+
+        for item_data in items_data:
+            try:
+                medicine = Medicine.objects.get(id=item_data['medicine_id'])
+            except (Medicine.DoesNotExist, KeyError):
+                return Response({"error": f"Medicine ID {item_data.get('medicine_id')} not found"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Find batch (FIFO)
+            batch = Batch.objects.filter(
+                medicine=medicine, 
+                quantity__gt=0,
+                expiry_date__gt=timezone.now().date(),
+                is_active=True
+            ).order_by('expiry_date').first()
+            
+            if not batch:
+                return Response({"error": f"Out of stock for {medicine.name}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            qty = int(item_data['quantity'])
+            if batch.quantity < qty:
+                 return Response({"error": f"Insufficient stock in earliest batch for {medicine.name} (Available: {batch.quantity})"}, status=status.HTTP_400_BAD_REQUEST)
+
+            price = Decimal(str(item_data['price']))
+            item_subtotal = price * qty
+            item_tax = (item_subtotal * medicine.gst_percentage) / 100
+            
+            total_subtotal += item_subtotal
+            total_tax += item_tax
+            
+            items_to_process.append({
+                'medicine': medicine,
+                'batch': batch,
+                'quantity': qty,
+                'price': price,
+                'gst_percentage': medicine.gst_percentage
+            })
+
+        # 2. Create Sale Header
         if not data.get('invoice_number'):
             import uuid
             data['invoice_number'] = f"INV-{uuid.uuid4().hex[:8].upper()}"
         
-        # Ensure totals are present for validation
-        if not data.get('subtotal') and data.get('total_amount'):
-             total = float(data.get('total_amount'))
-             data['subtotal'] = f"{total / 1.12:.2f}"
-             data['tax_amount'] = f"{total - float(data['subtotal']):.2f}"
-        
+        data['subtotal'] = total_subtotal
+        data['tax_amount'] = total_tax
+        data['total_amount'] = total_subtotal + total_tax
         if not data.get('amount_paid'):
-            data['amount_paid'] = data.get('total_amount', '0.00')
+            data['amount_paid'] = data['total_amount']
 
-        if data.get('customer_name') and not data.get('customer'):
-            data['notes'] = f"Customer: {data.get('customer_name')}\n" + (data.get('notes') or "")
-        
-        # Calculate totals from backend if needed, but here we trust frontend with validation
         sale_serializer = self.get_serializer(data=data)
         if not sale_serializer.is_valid():
-            print(f"DEBUG: Sale validation errors: {sale_serializer.errors}")
             return Response(sale_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        # Pass the backend-generated fields during save
         sale = sale_serializer.save(
             created_by=self.request.user,
-            invoice_number=data.get('invoice_number'),
-            subtotal=data.get('subtotal', '0.00'),
-            tax_amount=data.get('tax_amount', '0.00'),
-            amount_paid=data.get('amount_paid', '0.00')
+            invoice_number=data['invoice_number'],
+            subtotal=data['subtotal'],
+            tax_amount=data['tax_amount'],
+            total_amount=data['total_amount'],
+            amount_paid=data['amount_paid']
         )
 
-        for item in items_data:
-            medicine = Medicine.objects.get(id=item['medicine_id'])
-            
-            # Find the best batch (FIFO - First In First Out)
-            batch = Batch.objects.filter(
-                medicine=medicine, 
-                quantity__gt=0,
-                expiry_date__gt=timezone.now().date()
-            ).order_by('expiry_date').first()
-            
-            if not batch:
-                raise serializers.ValidationError(f"No active stock for {medicine.name}")
-            
-            qty = int(item['quantity'])
-            if batch.quantity < qty:
-                 # In a real app, we might split across multiple batches
-                 raise serializers.ValidationError(f"Insufficient stock in earliest batch for {medicine.name}")
+        # 3. Create Sale Items and Update Stock
+        final_total = Decimal('0.00')
+        final_tax = Decimal('0.00')
+        final_subtotal = Decimal('0.00')
 
-            SaleItem.objects.create(
+        for item in items_to_process:
+            si = SaleItem.objects.create(
                 sale=sale,
-                medicine=medicine,
-                batch=batch,
-                quantity=qty,
+                medicine=item['medicine'],
+                batch=item['batch'],
+                quantity=item['quantity'],
                 selling_price=item['price'],
-                mrp=batch.mrp,
-                batch_number=batch.batch_number,
-                gst_percentage=medicine.gst_percentage
+                mrp=item['batch'].mrp,
+                batch_number=item['batch'].batch_number,
+                gst_percentage=item['gst_percentage']
             )
             
-            # Update stock
-            batch.quantity -= qty
-            batch.save()
+            final_subtotal += si.subtotal
+            final_tax += si.tax_amount
+            final_total += si.total
             
-            medicine.quantity_in_stock -= qty
-            medicine.save()
+            # Update Batch and Medicine stock
+            item['batch'].quantity -= item['quantity']
+            item['batch'].save()
+            item['medicine'].quantity_in_stock -= item['quantity']
+            item['medicine'].save()
 
-        return Response(sale_serializer.data, status=status.HTTP_201_CREATED)
+        # Update sale with finalized numbers
+        sale.subtotal = final_subtotal
+        sale.tax_amount = final_tax
+        sale.total_amount = final_total
+        if not data.get('amount_paid'):
+            sale.amount_paid = final_total
+        sale.save()
+
+        return Response(self.get_serializer(sale).data, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer):
         """Set created_by when creating sale"""

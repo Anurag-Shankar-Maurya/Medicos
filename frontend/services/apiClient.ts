@@ -117,7 +117,10 @@ class ApiClient {
         if (response.status >= 500) throw new Error('Server error. Please try again later.');
         
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || errData.message || `API Error: ${response.statusText}`);
+        const errorMessage = errData.error || errData.detail || errData.message || 
+                             (typeof errData === 'object' ? Object.values(errData).flat()[0] : null) ||
+                             `API Error: ${response.statusText}`;
+        throw new Error(String(errorMessage));
       }
 
       if (response.status === 204) {

@@ -33,6 +33,7 @@ export interface Medicine {
   pack_size: string;
   mrp: string;
   selling_price: string;
+  gst_percentage: number;
   quantity_in_stock: number;
   reorder_level: number;
   requires_prescription: boolean;
