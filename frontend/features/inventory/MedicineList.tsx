@@ -18,7 +18,8 @@ export const MedicineList = () => {
   const { addToast } = useToast();
 
   // Get URL Params
-  const currentPage = parseInt(searchParams.get('page') || '1');
+  const pageParam = searchParams.get('page');
+  const currentPage = pageParam && !isNaN(parseInt(pageParam)) ? Math.max(1, parseInt(pageParam)) : 1;
   const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
@@ -32,11 +33,21 @@ export const MedicineList = () => {
         page: page.toString(),
         search: search
       });
-      setMedicines(res.results);
-      setTotalCount(res.count);
+      
+      if (res && res.results) {
+        setMedicines(res.results);
+        setTotalCount(res.count);
+      } else {
+        // Handle unexpected non-paginated response if necessary
+        const results = Array.isArray(res) ? res : [];
+        setMedicines(results);
+        setTotalCount(results.length);
+      }
     } catch (error: any) {
-      console.error(error);
+      console.error("Fetch medicines error:", error);
       addToast(error.message || 'Failed to fetch inventory', 'error');
+      setMedicines([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -125,10 +136,10 @@ export const MedicineList = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <span className={`font-medium ${item.needs_reorder === 'true' ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                      <span className={`font-medium ${item.needs_reorder ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-200'}`}>
                         {item.quantity_in_stock}
                       </span>
-                      {item.needs_reorder === 'true' && (
+                      {item.needs_reorder && (
                          <span title="Low Stock">
                             <AlertCircle size={14} className="ml-2 text-red-500" />
                          </span>

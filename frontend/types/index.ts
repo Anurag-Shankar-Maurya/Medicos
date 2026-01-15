@@ -27,18 +27,19 @@ export interface Medicine {
   id: number;
   name: string;
   generic_name: string;
-  medicine_type: 'tablet' | 'capsule' | 'syrup' | 'injection' | 'ointment' | 'drops' | 'cream' | 'gel' | 'powder' | 'inhaler' | 'other';
+  medicine_type: string;
   manufacturer: string;
   strength: string;
   pack_size: string;
   mrp: string;
   selling_price: string;
   quantity_in_stock: number;
-  low_stock_threshold: number;
+  reorder_level: number;
   requires_prescription: boolean;
   rack_number: string;
-  needs_reorder?: string; // from backend logic
-  expiry_date?: string; // derived from batches usually, but simplified here
+  needs_reorder: boolean; 
+  is_overstocked: boolean;
+  created_at: string;
 }
 
 export interface Batch {
@@ -48,8 +49,9 @@ export interface Batch {
   batch_number: string;
   expiry_date: string;
   quantity: number;
-  is_expired: string; // boolean as string in swagger? Assuming "true"/"false" or check definition
-  days_to_expiry: string;
+  is_expired: boolean;
+  is_near_expiry: boolean;
+  days_to_expiry: number;
 }
 
 // Sales

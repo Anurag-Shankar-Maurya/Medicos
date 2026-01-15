@@ -50,9 +50,9 @@ class BatchSerializer(serializers.ModelSerializer):
 
 class MedicineSerializer(serializers.ModelSerializer):
     """Serializer for medicines with nested batches"""
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    category_name = serializers.ReadOnlyField(source='category.name', default=None)
+    supplier_name = serializers.ReadOnlyField(source='supplier.name', default=None)
+    created_by_name = serializers.ReadOnlyField(source='created_by.get_full_name', default=None)
     profit_margin = serializers.SerializerMethodField()
     needs_reorder = serializers.SerializerMethodField()
     is_overstocked = serializers.SerializerMethodField()
