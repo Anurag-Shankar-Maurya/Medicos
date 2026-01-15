@@ -1,8 +1,9 @@
 import { LoginResponse, PaginatedResponse } from '../types';
 import { MOCK_USER, MOCK_MEDICINES, MOCK_DASHBOARD_STATS, MOCK_SALES_CHART_DATA, MOCK_RECENT_SALES } from './mockData';
 
-const BASE_URL = 'http://127.0.0.1:8000/api';
-const USE_MOCK = true; // Flag to toggle mock data. In production, this might be false or environment driven.
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+// Use Vite env variable VITE_USE_MOCK to toggle. Defaults to true for local dev if not provided.
+const USE_MOCK = typeof import.meta.env.VITE_USE_MOCK !== 'undefined' ? import.meta.env.VITE_USE_MOCK === 'true' : true;
 
 class ApiClient {
   private getToken(): string | null {
@@ -93,8 +94,7 @@ class ApiClient {
     const token = this.getToken();
     const headers = {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...(token ? { Authorization: `Token ${token}` } : {}),
     };
 
     const config = {

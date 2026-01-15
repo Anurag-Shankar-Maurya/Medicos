@@ -40,7 +40,9 @@ INSTALLED_APPS = [
 
     # Third party apps
     'rest_framework',
+    'rest_framework.authtoken',
     'drf_yasg',
+    'corsheaders',
 
     # Local apps
     'apps.medicines',
@@ -49,6 +51,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -143,4 +146,15 @@ SWAGGER_SETTINGS = {
 
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
+}
+
+# CORS (development convenience)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# REST framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
 }
