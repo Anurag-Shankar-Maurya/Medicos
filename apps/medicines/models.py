@@ -5,28 +5,6 @@ from django.utils import timezone
 from django.conf import settings
 
 
-class Category(models.Model):
-    """Medicine categories for organization"""
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-    parent = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='subcategories'
-    )
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Categories"
-        ordering = ['name']
-
-
 class Medicine(models.Model):
     """Core medicine/product model"""
     MEDICINE_TYPES = [
@@ -47,10 +25,9 @@ class Medicine(models.Model):
     name = models.CharField(max_length=200)
     generic_name = models.CharField(max_length=200, blank=True)
     medicine_type = models.CharField(max_length=20, choices=MEDICINE_TYPES)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='medicines')
     manufacturer = models.CharField(max_length=200)
     
-    # Supplier relationship - import from users app
+    # Supplier relationship - ensuring dependency on users app
     supplier = models.ForeignKey(
         'users.Supplier',
         on_delete=models.SET_NULL,
@@ -159,150 +136,6 @@ class Medicine(models.Model):
         ]
 
 
-class Batch(models.Model):
-    """Medicine batch tracking for expiry and inventory management"""
-    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='batches')
-    batch_number = models.CharField(max_length=50)
-    manufacturing_date = models.DateField()
-    expiry_date = models.DateField()
-    
-    quantity = models.IntegerField(validators=[MinValueValidator(0)])
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
-    mrp = models.DecimalField(max_digits=10, decimal_places=2)
-    
-    received_date = models.DateField(default=timezone.now)
-    is_active = models.BooleanField(default=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.medicine.name} - Batch {self.batch_number}"
-
-    @property
-    def is_expired(self):
-        if not self.expiry_date:
-            return False
-        return self.expiry_date < timezone.now().date()
-
-    @property
-    def days_to_expiry(self):
-        if not self.expiry_date:
-            return None
-        delta = self.expiry_date - timezone.now().date()
-        return delta.days
-
-    @property
-    def is_near_expiry(self):
-        """Check if batch expires within 90 days"""
-        d = self.days_to_expiry
-        return d is not None and 0 < d <= 90
-
-    class Meta:
-        verbose_name_plural = "Batches"
-        ordering = ['expiry_date']
-        unique_together = ['medicine', 'batch_number']
-        indexes = [
-            models.Index(fields=['expiry_date']),
-            models.Index(fields=['batch_number']),
-        ]
-
-
-class Purchase(models.Model):
-    """Purchase orders from suppliers"""
-    PAYMENT_METHODS = [
-        ('cash', 'Cash'),
-        ('card', 'Card'),
-        ('upi', 'UPI'),
-        ('bank_transfer', 'Bank Transfer'),
-        ('cheque', 'Cheque'),
-        ('credit', 'Credit'),
-    ]
-
-    PAYMENT_STATUS = [
-        ('paid', 'Paid'),
-        ('partial', 'Partially Paid'),
-        ('unpaid', 'Unpaid'),
-    ]
-
-    invoice_number = models.CharField(max_length=50, unique=True)
-    supplier = models.ForeignKey('users.Supplier', on_delete=models.PROTECT, related_name='purchases')
-    purchase_date = models.DateTimeField(default=timezone.now)
-    
-    # Payment details
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    shipping_charges = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='unpaid')
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    
-    # Additional details
-    supplier_invoice_number = models.CharField(max_length=50, blank=True)
-    notes = models.TextField(blank=True)
-    
-    # Metadata
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='purchases_created'
-    )
-
-    def __str__(self):
-        return f"Purchase {self.invoice_number} - {self.supplier.name}"
-
-    @property
-    def balance_due(self):
-        return self.total_amount - self.amount_paid
-
-    class Meta:
-        ordering = ['-purchase_date']
-        indexes = [
-            models.Index(fields=['invoice_number']),
-            models.Index(fields=['purchase_date']),
-        ]
-
-
-class PurchaseItem(models.Model):
-    """Individual items in a purchase order"""
-    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='items')
-    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT)
-    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    quantity = models.IntegerField(validators=[MinValueValidator(1)])
-    free_quantity = models.IntegerField(default=0, help_text="Bonus/free items")
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
-    mrp = models.DecimalField(max_digits=10, decimal_places=2)
-    
-    batch_number = models.CharField(max_length=50)
-    expiry_date = models.DateField()
-    
-    gst_percentage = models.DecimalField(max_digits=5, decimal_places=2)
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
-    
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    tax_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        return f"{self.medicine.name} x {self.quantity}"
-
-    def save(self, *args, **kwargs):
-        self.subtotal = self.purchase_price * self.quantity
-        self.discount_amount = (self.subtotal * self.discount_percentage) / 100
-        taxable_amount = self.subtotal - self.discount_amount
-        self.tax_amount = (taxable_amount * self.gst_percentage) / 100
-        self.total = taxable_amount + self.tax_amount
-        super().save(*args, **kwargs)
-
-
 class Sale(models.Model):
     """Sales/billing transactions"""
     PAYMENT_METHODS = [
@@ -375,13 +208,10 @@ class SaleItem(models.Model):
     """Individual items in a sale"""
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
     medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT)
-    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True)
     
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
     selling_price = models.DecimalField(max_digits=10, decimal_places=2)
     mrp = models.DecimalField(max_digits=10, decimal_places=2)
-    
-    batch_number = models.CharField(max_length=50)
     
     gst_percentage = models.DecimalField(max_digits=5, decimal_places=2)
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
@@ -401,44 +231,3 @@ class SaleItem(models.Model):
         self.tax_amount = (taxable_amount * self.gst_percentage) / 100
         self.total = taxable_amount + self.tax_amount
         super().save(*args, **kwargs)
-
-
-class StockAdjustment(models.Model):
-    """Track inventory adjustments"""
-    ADJUSTMENT_TYPES = [
-        ('add', 'Stock Added'),
-        ('remove', 'Stock Removed'),
-        ('damage', 'Damaged'),
-        ('expired', 'Expired'),
-        ('return_supplier', 'Return to Supplier'),
-        ('return_customer', 'Customer Return'),
-        ('loss', 'Loss/Theft'),
-        ('found', 'Found'),
-        ('correction', 'Stock Correction'),
-    ]
-
-    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, related_name='stock_adjustments')
-    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True)
-    adjustment_type = models.CharField(max_length=20, choices=ADJUSTMENT_TYPES)
-    quantity = models.IntegerField()
-    reason = models.TextField()
-    
-    adjustment_date = models.DateTimeField(default=timezone.now)
-    adjusted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='stock_adjustments'
-    )
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.medicine.name} - {self.adjustment_type} ({self.quantity})"
-
-    class Meta:
-        ordering = ['-adjustment_date']
-        indexes = [
-            models.Index(fields=['adjustment_date']),
-            models.Index(fields=['adjustment_type']),
-        ]

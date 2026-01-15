@@ -1,36 +1,20 @@
-from rest_framework import generics, viewsets, status, serializers
+from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q, F, Sum, Count
+from django.db.models import Q, F, Sum, Count, Avg
 from django.db import transaction
 from django.utils import timezone
-from .models import (
-    Category, Medicine, Batch, Purchase, PurchaseItem,
-    Sale, SaleItem, StockAdjustment
-)
-from .serializers import (
-    CategorySerializer, MedicineSerializer, BatchSerializer,
-    PurchaseSerializer, PurchaseItemSerializer, SaleSerializer,
-    SaleItemSerializer, StockAdjustmentSerializer
-)
+from datetime import timedelta
+import uuid
+from decimal import Decimal
 
+from .models import Medicine, Sale, SaleItem
+from .serializers import MedicineSerializer, SaleSerializer, SaleItemSerializer
 
-class CategoryViewSet(viewsets.ModelViewSet):
-    """ViewSet for medicine categories"""
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = Category.objects.prefetch_related('subcategories')
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
-        return queryset.order_by('name')
-
+# ==========================================
+# VIEWSETS (CRUD OPERATIONS)
+# ==========================================
 
 class MedicineViewSet(viewsets.ModelViewSet):
     """ViewSet for medicines"""
@@ -39,9 +23,8 @@ class MedicineViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Medicine.objects.select_related('category', 'supplier', 'created_by').prefetch_related('batches')
+        queryset = Medicine.objects.select_related('supplier', 'created_by')
         search = self.request.query_params.get('search', None)
-        category = self.request.query_params.get('category', None)
         medicine_type = self.request.query_params.get('medicine_type', None)
         is_active = self.request.query_params.get('is_active', None)
 
@@ -53,8 +36,6 @@ class MedicineViewSet(viewsets.ModelViewSet):
                 Q(barcode__icontains=search) |
                 Q(sku__icontains=search)
             )
-        if category:
-            queryset = queryset.filter(category_id=category)
         if medicine_type:
             queryset = queryset.filter(medicine_type=medicine_type)
         if is_active is not None:
@@ -62,132 +43,21 @@ class MedicineViewSet(viewsets.ModelViewSet):
 
         return queryset.order_by('name')
 
-    @transaction.atomic
     def perform_create(self, serializer):
-        """Set created_by when creating medicine and create initial batch if stock provided"""
-        medicine = serializer.save(created_by=self.request.user)
-        
-        # Create initial batch if there's stock but no batches
-        if medicine.quantity_in_stock > 0:
-            Batch.objects.create(
-                medicine=medicine,
-                batch_number="INITIAL-" + timezone.now().strftime("%Y%m%d"),
-                quantity=medicine.quantity_in_stock,
-                purchase_price=medicine.purchase_price,
-                mrp=medicine.mrp,
-                manufacturing_date=timezone.now().date(),
-                expiry_date=timezone.now().date() + timezone.timedelta(days=730), # 2 years default
-                is_active=True
-            )
+        """Set created_by when creating medicine"""
+        serializer.save(created_by=self.request.user)
 
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
-        """Get medicines that need reorder"""
+        """Get medicines that need reorder (Active & Stock <= Reorder Level)"""
         medicines = self.get_queryset().filter(
             quantity_in_stock__lte=F('reorder_level'),
             is_active=True
         ).annotate(
-            shortage= F('reorder_level') - F('quantity_in_stock')
+            shortage=F('reorder_level') - F('quantity_in_stock')
         )
         serializer = self.get_serializer(medicines, many=True)
         return Response(serializer.data)
-
-
-class BatchViewSet(viewsets.ModelViewSet):
-    """ViewSet for medicine batches"""
-    queryset = Batch.objects.all()
-    serializer_class = BatchSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = Batch.objects.select_related('medicine')
-        medicine = self.request.query_params.get('medicine', None)
-        expired = self.request.query_params.get('expired', None)
-        near_expiry = self.request.query_params.get('near_expiry', None)
-        is_active = self.request.query_params.get('is_active', None)
-
-        if medicine:
-            queryset = queryset.filter(medicine_id=medicine)
-        if expired is not None:
-            queryset = queryset.filter(expiry_date__lt=timezone.now().date())
-        if near_expiry is not None:
-            # Near expiry: expires within 90 days
-            future_date = timezone.now().date() + timezone.timedelta(days=90)
-            queryset = queryset.filter(
-                expiry_date__gte=timezone.now().date(),
-                expiry_date__lte=future_date
-            )
-        if is_active is not None:
-            queryset = queryset.filter(is_active=is_active.lower() == 'true')
-
-        return queryset.order_by('expiry_date')
-
-    @action(detail=False, methods=['get'])
-    def expiring(self, request):
-        """Get batches that are expiring soon or already expired"""
-        # Expired batches
-        expired = self.get_queryset().filter(expiry_date__lt=timezone.now().date())
-
-        # Near expiry (within 90 days)
-        future_date = timezone.now().date() + timezone.timedelta(days=90)
-        near_expiry = self.get_queryset().filter(
-            expiry_date__gte=timezone.now().date(),
-            expiry_date__lte=future_date
-        )
-
-        data = {
-            'expired': self.get_serializer(expired, many=True).data,
-            'near_expiry': self.get_serializer(near_expiry, many=True).data
-        }
-        return Response(data)
-
-
-class PurchaseViewSet(viewsets.ModelViewSet):
-    """ViewSet for purchases"""
-    queryset = Purchase.objects.all()
-    serializer_class = PurchaseSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = Purchase.objects.select_related('supplier', 'created_by').prefetch_related('items__medicine')
-        supplier = self.request.query_params.get('supplier', None)
-        payment_status = self.request.query_params.get('payment_status', None)
-        start_date = self.request.query_params.get('start_date', None)
-        end_date = self.request.query_params.get('end_date', None)
-
-        if supplier:
-            queryset = queryset.filter(supplier_id=supplier)
-        if payment_status:
-            queryset = queryset.filter(payment_status=payment_status)
-        if start_date:
-            queryset = queryset.filter(purchase_date__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(purchase_date__lte=end_date)
-
-        return queryset.order_by('-purchase_date')
-
-    def perform_create(self, serializer):
-        """Set created_by when creating purchase"""
-        serializer.save(created_by=self.request.user)
-
-
-class PurchaseItemViewSet(viewsets.ModelViewSet):
-    """ViewSet for purchase items"""
-    queryset = PurchaseItem.objects.all()
-    serializer_class = PurchaseItemSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = PurchaseItem.objects.select_related('purchase', 'medicine', 'batch')
-        purchase = self.request.query_params.get('purchase', None)
-        medicine = self.request.query_params.get('medicine', None)
-
-        if purchase:
-            queryset = queryset.filter(purchase_id=purchase)
-        if medicine:
-            queryset = queryset.filter(medicine_id=medicine)
-
-        return queryset.order_by('-id')
 
 
 class SaleViewSet(viewsets.ModelViewSet):
@@ -219,41 +89,43 @@ class SaleViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        from decimal import Decimal
+        """
+        Custom create method to handle:
+        1. Atomic transaction
+        2. Stock deduction from Medicine model
+        3. Calculations for Tax and Totals
+        """
         data = request.data.copy()
         items_data = data.pop('items', [])
         
         if not items_data:
             return Response({"error": "No items in sale"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Validation Logic
+        # 1. Validation Logic & Stock Check
         items_to_process = []
         total_subtotal = Decimal('0.00')
         total_tax = Decimal('0.00')
 
         for item_data in items_data:
             try:
-                medicine = Medicine.objects.get(id=item_data['medicine_id'])
+                # Lock the medicine row for update to prevent race conditions
+                medicine = Medicine.objects.select_for_update().get(id=item_data['medicine_id'])
             except (Medicine.DoesNotExist, KeyError):
                 return Response({"error": f"Medicine ID {item_data.get('medicine_id')} not found"}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Find batch (FIFO)
-            batch = Batch.objects.filter(
-                medicine=medicine, 
-                quantity__gt=0,
-                expiry_date__gt=timezone.now().date(),
-                is_active=True
-            ).order_by('expiry_date').first()
-            
-            if not batch:
-                return Response({"error": f"Out of stock for {medicine.name}"}, status=status.HTTP_400_BAD_REQUEST)
-            
             qty = int(item_data['quantity'])
-            if batch.quantity < qty:
-                 return Response({"error": f"Insufficient stock in earliest batch for {medicine.name} (Available: {batch.quantity})"}, status=status.HTTP_400_BAD_REQUEST)
+            if qty <= 0:
+                return Response({"error": f"Quantity must be greater than 0 for {medicine.name}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if medicine.quantity_in_stock < qty:
+                 return Response({"error": f"Insufficient stock for {medicine.name} (Available: {medicine.quantity_in_stock})"}, status=status.HTTP_400_BAD_REQUEST)
 
             price = Decimal(str(item_data['price']))
+            
+            # Calculations
             item_subtotal = price * qty
+            # Assuming price is exclusive of tax for calculation base, or inclusive? 
+            # Logic here assumes Price is the unit selling price, Tax is calculated on top.
             item_tax = (item_subtotal * medicine.gst_percentage) / 100
             
             total_subtotal += item_subtotal
@@ -261,7 +133,6 @@ class SaleViewSet(viewsets.ModelViewSet):
             
             items_to_process.append({
                 'medicine': medicine,
-                'batch': batch,
                 'quantity': qty,
                 'price': price,
                 'gst_percentage': medicine.gst_percentage
@@ -269,7 +140,6 @@ class SaleViewSet(viewsets.ModelViewSet):
 
         # 2. Create Sale Header
         if not data.get('invoice_number'):
-            import uuid
             data['invoice_number'] = f"INV-{uuid.uuid4().hex[:8].upper()}"
         
         data['subtotal'] = total_subtotal
@@ -291,7 +161,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             amount_paid=data['amount_paid']
         )
 
-        # 3. Create Sale Items and Update Stock
+        # 3. Create Sale Items and Deduct Stock
         final_total = Decimal('0.00')
         final_tax = Decimal('0.00')
         final_subtotal = Decimal('0.00')
@@ -300,11 +170,9 @@ class SaleViewSet(viewsets.ModelViewSet):
             si = SaleItem.objects.create(
                 sale=sale,
                 medicine=item['medicine'],
-                batch=item['batch'],
                 quantity=item['quantity'],
                 selling_price=item['price'],
-                mrp=item['batch'].mrp,
-                batch_number=item['batch'].batch_number,
+                mrp=item['medicine'].mrp,
                 gst_percentage=item['gst_percentage']
             )
             
@@ -312,13 +180,11 @@ class SaleViewSet(viewsets.ModelViewSet):
             final_tax += si.tax_amount
             final_total += si.total
             
-            # Update Batch and Medicine stock
-            item['batch'].quantity -= item['quantity']
-            item['batch'].save()
+            # Deduct Stock
             item['medicine'].quantity_in_stock -= item['quantity']
             item['medicine'].save()
 
-        # Update sale with finalized numbers
+        # Update sale header with finalized numbers (in case of rounding diffs)
         sale.subtotal = final_subtotal
         sale.tax_amount = final_tax
         sale.total_amount = final_total
@@ -340,7 +206,7 @@ class SaleItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = SaleItem.objects.select_related('sale', 'medicine', 'batch')
+        queryset = SaleItem.objects.select_related('sale', 'medicine')
         sale = self.request.query_params.get('sale', None)
         medicine = self.request.query_params.get('medicine', None)
 
@@ -352,117 +218,165 @@ class SaleItemViewSet(viewsets.ModelViewSet):
         return queryset.order_by('-id')
 
 
-class StockAdjustmentViewSet(viewsets.ModelViewSet):
-    """ViewSet for stock adjustments"""
-    queryset = StockAdjustment.objects.all()
-    serializer_class = StockAdjustmentSerializer
-    permission_classes = [IsAuthenticated]
+# ==========================================
+# DASHBOARD & ANALYTICS VIEWS
+# ==========================================
 
-    def get_queryset(self):
-        queryset = StockAdjustment.objects.select_related('medicine', 'batch', 'adjusted_by')
-        medicine = self.request.query_params.get('medicine', None)
-        adjustment_type = self.request.query_params.get('adjustment_type', None)
-        start_date = self.request.query_params.get('start_date', None)
-        end_date = self.request.query_params.get('end_date', None)
-
-        if medicine:
-            queryset = queryset.filter(medicine_id=medicine)
-        if adjustment_type:
-            queryset = queryset.filter(adjustment_type=adjustment_type)
-        if start_date:
-            queryset = queryset.filter(adjustment_date__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(adjustment_date__lte=end_date)
-
-        return queryset.order_by('-adjustment_date')
-
-    def perform_create(self, serializer):
-        """Set adjusted_by when creating adjustment"""
-        serializer.save(adjusted_by=self.request.user)
-
-
-# Custom API Views for Reports
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def expiring_batches_report(request):
-    """Get report of expiring and expired batches"""
-    expired = Batch.objects.filter(
-        expiry_date__lt=timezone.now().date(),
-        is_active=True
-    ).select_related('medicine')
+def dashboard_stats(request):
+    """
+    Get comprehensive dashboard statistics including:
+    1. Financial Summaries (Today & Lifetime)
+    2. Inventory Health (Stock counts & Valuation)
+    3. Payment Analysis
+    """
+    today = timezone.now().date()
+    
+    # --- 1. Sales & Revenue Metrics ---
+    todays_sales_qs = Sale.objects.filter(sale_date__date=today)
+    
+    todays_revenue = todays_sales_qs.aggregate(total=Sum('total_amount'))['total'] or 0
+    todays_transactions = todays_sales_qs.count()
+    
+    # Calculate Average Order Value (AOV)
+    total_lifetime_revenue = Sale.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+    total_lifetime_count = Sale.objects.count()
+    average_order_value = (total_lifetime_revenue / total_lifetime_count) if total_lifetime_count > 0 else 0
 
-    near_expiry = Batch.objects.filter(
-        expiry_date__gte=timezone.now().date(),
-        expiry_date__lte=timezone.now().date() + timezone.timedelta(days=90),
+    # --- 2. Inventory Health ---
+    # Low Stock: > 0 but <= reorder_level
+    low_stock_count = Medicine.objects.filter(
+        quantity_in_stock__lte=F('reorder_level'),
+        quantity_in_stock__gt=0,
         is_active=True
-    ).select_related('medicine')
+    ).count()
+    
+    # Out of Stock: <= 0
+    out_of_stock_count = Medicine.objects.filter(
+        quantity_in_stock__lte=0,
+        is_active=True
+    ).count()
 
-    data = {
-        'expired_count': expired.count(),
-        'near_expiry_count': near_expiry.count(),
-        'expired_batches': BatchSerializer(expired, many=True).data,
-        'near_expiry_batches': BatchSerializer(near_expiry, many=True).data
-    }
+    # Total Medicines
+    total_medicines = Medicine.objects.filter(is_active=True).count()
+
+    # --- 3. Inventory Valuation (Estimates) ---
+    # Cost Value: How much money is tied up in stock (Purchase Price * Qty)
+    inventory_cost_value = Medicine.objects.filter(is_active=True).aggregate(
+        val=Sum(F('quantity_in_stock') * F('purchase_price'))
+    )['val'] or 0
+
+    # Potential Sales Value: How much revenue the stock represents (Selling Price * Qty)
+    inventory_sales_value = Medicine.objects.filter(is_active=True).aggregate(
+        val=Sum(F('quantity_in_stock') * F('selling_price'))
+    )['val'] or 0
+
+    # --- 4. Payment Method Breakdown ---
+    payment_breakdown = Sale.objects.values('payment_method').annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('-total')
+
+    return Response({
+        "sales_summary": {
+            "todaysRevenue": float(todays_revenue),
+            "todaysTransactions": todays_transactions,
+            "totalLifetimeSales": total_lifetime_count,
+            "averageOrderValue": float(round(average_order_value, 2))
+        },
+        "inventory_summary": {
+            "totalProducts": total_medicines,
+            "lowStockCount": low_stock_count,
+            "outOfStockCount": out_of_stock_count,
+            "inventoryCostValue": float(inventory_cost_value),
+            "inventoryPotentialValue": float(inventory_sales_value),
+            "estimatedPotentialProfit": float(inventory_sales_value - inventory_cost_value)
+        },
+        "payment_analytics": list(payment_breakdown)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def top_selling_products(request):
+    """Get top 5 selling medicines by quantity"""
+    top_products = SaleItem.objects.values(
+        'medicine__name', 'medicine__medicine_type'
+    ).annotate(
+        total_qty=Sum('quantity'),
+        total_revenue=Sum('total')
+    ).order_by('-total_qty')[:5]
+    
+    return Response(top_products)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recent_transactions(request):
+    """Get last 5 transactions for a feed widget"""
+    recent_sales = Sale.objects.select_related('customer').all().order_by('-sale_date')[:5]
+    
+    data = []
+    for sale in recent_sales:
+        data.append({
+            "id": sale.id,
+            "invoice": sale.invoice_number,
+            "customer": sale.customer.name if sale.customer else "Walk-in Customer",
+            "amount": float(sale.total_amount),
+            "time": sale.sale_date.strftime("%H:%M"),
+            "status": "Paid" if sale.amount_paid >= sale.total_amount else "Partial/Unpaid"
+        })
+    
     return Response(data)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def sales_chart_data(request):
+    """Get weekly sales data for charts"""
+    today = timezone.now().date()
+    chart_data = []
+    
+    # Get last 7 days of sales
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        day_name = date.strftime('%a') # Mon, Tue, etc.
+        
+        # Aggregate stats for the day
+        daily_stats = Sale.objects.filter(
+            sale_date__date=date
+        ).aggregate(
+            revenue=Sum('total_amount'),
+            orders=Count('id')
+        )
+        
+        chart_data.append({
+            "name": day_name,
+            "date": date.strftime('%Y-%m-%d'),
+            "sales": float(daily_stats['revenue'] or 0),
+            "orders": daily_stats['orders'] or 0
+        })
+        
+    return Response(chart_data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def low_stock_alerts(request):
-    """Get medicines that need reorder"""
+    """
+    Dedicated endpoint for Low Stock Report
+    Returns detailed list of medicines needing reorder
+    """
     medicines = Medicine.objects.filter(
         quantity_in_stock__lte=F('reorder_level'),
         is_active=True
-    ).select_related('category', 'supplier').prefetch_related('batches').annotate(
+    ).select_related('supplier').annotate(
         shortage=F('reorder_level') - F('quantity_in_stock')
     )
 
     data = {
         'count': medicines.count(),
         'medicines': MedicineSerializer(medicines, many=True).data
-    }
-    return Response(data)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def sales_analytics(request):
-    """Get sales analytics data"""
-    # Date range from query params
-    start_date = request.query_params.get('start_date')
-    end_date = request.query_params.get('end_date')
-
-    sales_query = Sale.objects.all()
-    if start_date:
-        sales_query = sales_query.filter(sale_date__gte=start_date)
-    if end_date:
-        sales_query = sales_query.filter(sale_date__lte=end_date)
-
-    # Total sales
-    total_sales = sales_query.aggregate(
-        total_amount=Sum('total_amount'),
-        total_discount=Sum('discount'),
-        total_tax=Sum('tax_amount'),
-        count=Count('id')
-    )
-
-    # Payment method breakdown
-    payment_methods = sales_query.values('payment_method').annotate(
-        total=Sum('total_amount'),
-        count=Count('id')
-    ).order_by('-total')
-
-    # Top selling medicines
-    top_medicines = SaleItem.objects.filter(
-        sale__in=sales_query
-    ).values('medicine__name').annotate(
-        total_quantity=Sum('quantity'),
-        total_amount=Sum('total')
-    ).order_by('-total_amount')[:10]
-
-    data = {
-        'summary': total_sales,
-        'payment_methods': payment_methods,
-        'top_medicines': top_medicines
     }
     return Response(data)
