@@ -7,7 +7,7 @@ const USE_MOCK = typeof import.meta.env.VITE_USE_MOCK !== 'undefined' ? import.m
 
 class ApiClient {
   private getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   }
 
   // --- Mock Request Handler ---
@@ -108,6 +108,7 @@ class ApiClient {
       if (!response.ok) {
         if (response.status === 401) {
             localStorage.removeItem('auth_token');
+            sessionStorage.removeItem('auth_token');
             window.location.hash = '#/login';
             throw new Error('Session expired. Please login again.');
         }

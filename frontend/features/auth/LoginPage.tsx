@@ -10,6 +10,7 @@ import { useToast } from '../../components/common/Toast';
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { addToast } = useToast();
@@ -21,7 +22,7 @@ export const LoginPage = () => {
 
     try {
       const res = await apiClient.post<any>('/users/auth/login/', { username, password });
-      login(res.token, res.user);
+      login(res.token, res.user, rememberMe);
       addToast('Successfully logged in!', 'success');
       navigate('/');
     } catch (err: any) {
@@ -63,6 +64,19 @@ export const LoginPage = () => {
             placeholder="••••••••"
           />
 
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center space-x-2 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 transition-colors"
+              />
+              <span className="text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200">Remember me</span>
+            </label>
+            <a href="#" className="text-primary-600 hover:text-primary-500 font-medium">Forgot password?</a>
+          </div>
+
           <Button type="submit" className="w-full" size="lg" isLoading={loading}>
             Sign In
           </Button>
@@ -70,7 +84,6 @@ export const LoginPage = () => {
 
         <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
           <p>Demo Credentials: user: admin, pass: any</p>
-          Forgot your password? <a href="#" className="text-primary-600 hover:text-primary-500 font-medium">Contact support</a>
         </div>
       </div>
     </div>

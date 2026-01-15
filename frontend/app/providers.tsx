@@ -46,7 +46,7 @@ export const useTheme = () => {
 // --- Auth Context ---
 interface AuthContextType {
   user: User | null;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: User, remember?: boolean) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -55,20 +55,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('user_data');
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    const storedUser = localStorage.getItem('user_data') || sessionStorage.getItem('user_data');
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
     }
   }, []);
 
-  const login = (token: string, userData: User) => {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('user_data', JSON.stringify(userData));
+  const login = (token: string, userData: User, remember: boolean = false) => {
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem('auth_token', token);
+    storage.setItem('user_data', JSON.stringify(userData));
     setUser(userData);
     setIsAuthenticated(true);
   };
@@ -76,14 +79,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user_data');
     setUser(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!isAuthenticated }}>
       <ToastProvider>
-        {children}
+        {isAuthenticated === null ? (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : children}
       </ToastProvider>
     </AuthContext.Provider>
   );
