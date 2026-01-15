@@ -14,6 +14,9 @@ export const BillingPage = () => {
   const [searchResults, setSearchResults] = useState<Medicine[]>([]);
   const [searching, setSearching] = useState(false);
   const [customerName, setCustomerName] = useState('');
+  const [customerContact, setCustomerContact] = useState('');
+  const [doctorName, setDoctorName] = useState('');
+  const [doctorRegistration, setDoctorRegistration] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'upi'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
   const { addToast } = useToast();
@@ -55,19 +58,24 @@ export const BillingPage = () => {
     try {
       const saleData = {
         customer_name: customerName || 'Walk-in Customer',
+        customer_contact: customerContact || undefined,
+        doctor_name: doctorName || undefined,
+        doctor_registration: doctorRegistration || undefined,
         payment_method: paymentMethod,
         items: cart.map(item => ({
           medicine_id: item.id,
           quantity: item.quantity,
           price: item.selling_price
-        })),
-        total_amount: calculateTotal().toFixed(2)
+        }))
       };
 
       await apiClient.post('/medicines/sales/', saleData);
       addToast("Sale completed successfully!", "success");
       clearCart();
       setCustomerName('');
+      setCustomerContact('');
+      setDoctorName('');
+      setDoctorRegistration('');
     } catch (error: any) {
       addToast(error.message || "Checkout failed", "error");
     } finally {
@@ -203,10 +211,25 @@ export const BillingPage = () => {
              <h3 className="font-bold text-slate-900 dark:text-white flex items-center">
                 <User size={18} className="mr-2 text-primary-600" /> Customer Details
              </h3>
-             <Input 
-                placeholder="Walk-in Customer" 
+             <Input
+                placeholder="Customer Name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
+             />
+             <Input
+                placeholder="Customer Contact (optional)"
+                value={customerContact}
+                onChange={(e) => setCustomerContact(e.target.value)}
+             />
+             <Input
+                placeholder="Doctor Name (optional)"
+                value={doctorName}
+                onChange={(e) => setDoctorName(e.target.value)}
+             />
+             <Input
+                placeholder="Doctor Registration (optional)"
+                value={doctorRegistration}
+                onChange={(e) => setDoctorRegistration(e.target.value)}
              />
           </div>
 

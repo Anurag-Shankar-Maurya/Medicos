@@ -86,6 +86,9 @@ export interface Sale {
   id: number;
   invoice_number: string;
   customer_name: string;
+  customer_contact?: string;
+  doctor_name?: string;
+  doctor_registration?: string;
   sale_date: string;
   total_amount: string;
   payment_method: 'cash' | 'card' | 'upi';

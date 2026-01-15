@@ -2,8 +2,8 @@ import { LoginResponse, PaginatedResponse } from '../types';
 import { MOCK_USER, MOCK_MEDICINES, MOCK_DASHBOARD_STATS, MOCK_SALES_CHART_DATA, MOCK_RECENT_SALES } from './mockData';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-// Use Vite env variable VITE_USE_MOCK to toggle. Defaults to true for local dev if not provided.
-const USE_MOCK = typeof import.meta.env.VITE_USE_MOCK !== 'undefined' ? import.meta.env.VITE_USE_MOCK === 'true' : true;
+// Use Vite env variable VITE_USE_MOCK to toggle. Defaults to false for real API usage.
+const USE_MOCK = typeof import.meta.env.VITE_USE_MOCK !== 'undefined' ? import.meta.env.VITE_USE_MOCK === 'true' : false;
 
 class ApiClient {
   private getToken(): string | null {
