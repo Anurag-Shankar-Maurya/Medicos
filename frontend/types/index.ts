@@ -29,18 +29,37 @@ export interface Medicine {
   generic_name: string;
   medicine_type: string;
   manufacturer: string;
+  supplier: number | null;
+  supplier_name: string | null;
+  composition: string;
   strength: string;
   pack_size: string;
+  purchase_price: string;
   mrp: string;
   selling_price: string;
+  wholesale_price: string;
   gst_percentage: number;
+  hsn_code: string;
   quantity_in_stock: number;
   reorder_level: number;
-  requires_prescription: boolean;
+  max_stock_level: number;
   rack_number: string;
-  needs_reorder: boolean; 
-  is_overstocked: boolean;
+  shelf_number: string;
+  requires_prescription: boolean;
+  is_schedule_h: boolean;
+  is_schedule_x: boolean;
+  side_effects: string;
+  usage_instructions: string;
+  barcode: string;
+  sku: string;
+  is_active: boolean;
   created_at: string;
+  updated_at: string;
+  created_by: number | null;
+  created_by_name: string | null;
+  profit_margin: number;
+  needs_reorder: boolean;
+  is_overstocked: boolean;
 }
 
 export interface Batch {

@@ -157,7 +157,8 @@ export const MedicineList = () => {
                 <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">Manufacturer</th>
                 <th className="px-6 py-4">Stock</th>
-                <th className="px-6 py-4">Price (MRP)</th>
+                <th className="px-6 py-4">Price</th>
+                <th className="px-6 py-4">Profit %</th>
                 <th className="px-6 py-4 text-center">Quick Add</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -165,16 +166,16 @@ export const MedicineList = () => {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                  <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-20 text-center text-slate-500">
                         <Spinner className="mx-auto mb-2" />
                         <span>Loading inventory...</span>
                     </td>
                  </tr>
               ) : medicines.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8">
-                       <EmptyState 
-                          title="No medicines found" 
+                    <td colSpan={8} className="p-8">
+                       <EmptyState
+                          title="No medicines found"
                           description={searchQuery ? `No results found for "${searchQuery}"` : "Get started by adding your first medicine to the inventory."}
                           actionLabel={searchQuery ? "Clear Search" : "Add Medicine"}
                           onAction={searchQuery ? () => setSearchParams({page: '1', search: ''}) : undefined}
@@ -213,8 +214,13 @@ export const MedicineList = () => {
                     <div className="text-slate-900 dark:text-white font-medium">${item.selling_price}</div>
                     <div className="text-xs text-slate-500 line-through">${item.mrp}</div>
                   </td>
+                  <td className="px-6 py-4">
+                    <span className={`font-medium ${item.profit_margin > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {item.profit_margin.toFixed(1)}%
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-center">
-                    <button 
+                    <button
                       onClick={() => addToCart(item)}
                       disabled={item.quantity_in_stock <= 0}
                       className="p-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
