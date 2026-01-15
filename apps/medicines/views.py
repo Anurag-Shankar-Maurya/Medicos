@@ -23,7 +23,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Medicine.objects.select_related('supplier', 'created_by')
+        queryset = Medicine.objects.select_related('created_by')
         search = self.request.query_params.get('search', None)
         medicine_type = self.request.query_params.get('medicine_type', None)
         is_active = self.request.query_params.get('is_active', None)
@@ -67,7 +67,7 @@ class SaleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Sale.objects.select_related('customer', 'doctor', 'created_by').prefetch_related('items__medicine')
+        queryset = Sale.objects.select_related('created_by').prefetch_related('items__medicine')
         customer = self.request.query_params.get('customer', None)
         doctor = self.request.query_params.get('doctor', None)
         payment_method = self.request.query_params.get('payment_method', None)
@@ -75,9 +75,9 @@ class SaleViewSet(viewsets.ModelViewSet):
         end_date = self.request.query_params.get('end_date', None)
 
         if customer:
-            queryset = queryset.filter(customer_id=customer)
+            queryset = queryset.filter(customer_name__icontains=customer)
         if doctor:
-            queryset = queryset.filter(doctor_id=doctor)
+            queryset = queryset.filter(doctor_name__icontains=doctor)
         if payment_method:
             queryset = queryset.filter(payment_method=payment_method)
         if start_date:
@@ -315,19 +315,19 @@ def top_selling_products(request):
 @permission_classes([IsAuthenticated])
 def recent_transactions(request):
     """Get last 5 transactions for a feed widget"""
-    recent_sales = Sale.objects.select_related('customer').all().order_by('-sale_date')[:5]
-    
+    recent_sales = Sale.objects.all().order_by('-sale_date')[:5]
+
     data = []
     for sale in recent_sales:
         data.append({
             "id": sale.id,
             "invoice": sale.invoice_number,
-            "customer": sale.customer.name if sale.customer else "Walk-in Customer",
+            "customer": sale.customer_name or "Walk-in Customer",
             "amount": float(sale.total_amount),
             "time": sale.sale_date.strftime("%H:%M"),
             "status": "Paid" if sale.amount_paid >= sale.total_amount else "Partial/Unpaid"
         })
-    
+
     return Response(data)
 
 
@@ -371,7 +371,7 @@ def low_stock_alerts(request):
     medicines = Medicine.objects.filter(
         quantity_in_stock__lte=F('reorder_level'),
         is_active=True
-    ).select_related('supplier').annotate(
+    ).annotate(
         shortage=F('reorder_level') - F('quantity_in_stock')
     )
 

@@ -3,7 +3,6 @@ from .models import Medicine, Sale, SaleItem
 
 class MedicineSerializer(serializers.ModelSerializer):
     """Serializer for medicines"""
-    supplier_name = serializers.ReadOnlyField(source='supplier.name', default=None)
     created_by_name = serializers.ReadOnlyField(source='created_by.get_full_name', default=None)
     profit_margin = serializers.SerializerMethodField()
     needs_reorder = serializers.SerializerMethodField()
@@ -12,8 +11,8 @@ class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
         fields = [
-            'id', 'name', 'generic_name', 'medicine_type', 
-            'manufacturer', 'supplier', 'supplier_name',
+            'id', 'name', 'generic_name', 'medicine_type',
+            'manufacturer', 'supplier_name',
             'composition', 'strength', 'pack_size', 'purchase_price',
             'mrp', 'selling_price', 'wholesale_price', 'gst_percentage',
             'hsn_code', 'quantity_in_stock', 'reorder_level', 'max_stock_level',
@@ -67,8 +66,6 @@ class SaleItemSerializer(serializers.ModelSerializer):
 
 class SaleSerializer(serializers.ModelSerializer):
     """Serializer for sales with nested items"""
-    customer_name = serializers.CharField(source='customer.name', read_only=True)
-    doctor_name = serializers.CharField(source='doctor.name', read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     change_returned = serializers.SerializerMethodField()
     items = SaleItemSerializer(many=True, read_only=True)
@@ -76,8 +73,8 @@ class SaleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
         fields = [
-            'id', 'invoice_number', 'customer', 'customer_name',
-            'sale_date', 'doctor', 'doctor_name', 'prescription_number',
+            'id', 'invoice_number', 'customer_name', 'customer_contact',
+            'sale_date', 'doctor_name', 'doctor_registration', 'prescription_number',
             'prescription_image', 'subtotal', 'tax_amount', 'discount',
             'total_amount', 'payment_method', 'amount_paid',
             'change_returned', 'points_earned', 'points_redeemed',
