@@ -15,6 +15,8 @@ export interface User {
   last_name: string;
   role: 'admin' | 'pharmacist' | 'cashier' | 'manager';
   employee_id?: string;
+  phone?: string;
+  address?: string;
   is_active: boolean;
 }
 

@@ -202,7 +202,7 @@ export const StaffPage = () => {
                   </td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                     <div className="text-sm">{user.email}</div>
-                    {/* Phone would be added here if available in User type */}
+                    {user.phone && <div className="text-xs text-slate-500 mt-1">{user.phone}</div>}
                   </td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                     <span className="text-sm font-mono">{user.employee_id || '-'}</span>

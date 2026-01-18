@@ -41,8 +41,8 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({ isOpen, onClose,
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         role: user.role || 'cashier',
-        phone: '', // Phone not in User type yet
-        address: '', // Address not in User type yet
+        phone: user.phone || '',
+        address: user.address || '',
         employee_id: user.employee_id || '',
         password: '', // Don't populate password for editing
         is_active: user.is_active
