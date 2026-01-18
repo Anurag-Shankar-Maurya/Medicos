@@ -254,12 +254,66 @@ export const MedicineList = () => {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
               <tr>
-                <th className="px-6 py-4">Name / Generic</th>
-                <th className="px-6 py-4">Type</th>
-                <th className="px-6 py-4">Manufacturer</th>
-                <th className="px-6 py-4">Stock</th>
-                <th className="px-6 py-4">Price</th>
-                <th className="px-6 py-4">Profit %</th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
+                  onClick={() => setSortBy(sortBy === 'name' ? '-name' : 'name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Name / Generic
+                    {sortBy === 'name' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-name' && <ChevronDown size={14} className="rotate-180" />}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
+                  onClick={() => setSortBy(sortBy === 'medicine_type' ? '-medicine_type' : 'medicine_type')}
+                >
+                  <div className="flex items-center gap-1">
+                    Type
+                    {sortBy === 'medicine_type' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-medicine_type' && <ChevronDown size={14} className="rotate-180" />}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
+                  onClick={() => setSortBy(sortBy === 'manufacturer' ? '-manufacturer' : 'manufacturer')}
+                >
+                  <div className="flex items-center gap-1">
+                    Manufacturer
+                    {sortBy === 'manufacturer' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-manufacturer' && <ChevronDown size={14} className="rotate-180" />}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
+                  onClick={() => setSortBy(sortBy === 'quantity_in_stock' ? '-quantity_in_stock' : 'quantity_in_stock')}
+                >
+                  <div className="flex items-center gap-1">
+                    Stock
+                    {sortBy === 'quantity_in_stock' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-quantity_in_stock' && <ChevronDown size={14} className="rotate-180" />}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
+                  onClick={() => setSortBy(sortBy === 'selling_price' ? '-selling_price' : 'selling_price')}
+                >
+                  <div className="flex items-center gap-1">
+                    Price
+                    {sortBy === 'selling_price' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-selling_price' && <ChevronDown size={14} className="rotate-180" />}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
+                  onClick={() => setSortBy(sortBy === 'profit_margin' ? '-profit_margin' : 'profit_margin')}
+                >
+                  <div className="flex items-center gap-1">
+                    Profit %
+                    {sortBy === 'profit_margin' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-profit_margin' && <ChevronDown size={14} className="rotate-180" />}
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-center">Quick Add</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
