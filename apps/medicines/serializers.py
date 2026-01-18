@@ -104,6 +104,7 @@ class CartItemSerializer(serializers.ModelSerializer):
             'quantity', 'total_price'
         ]
         read_only_fields = ['medicine_name', 'medicine_price', 'total_price']
+        depth = 1
 
     def get_total_price(self, obj):
         return obj.total_price
