@@ -227,6 +227,15 @@ class CartViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Cart.objects.filter(user=self.request.user).prefetch_related('items__medicine')
 
+    def list(self, request, *args, **kwargs):
+        """Return the user's cart, creating it if it doesn't exist"""
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart = self.get_queryset().filter(id=cart.id).first()
+        if cart:
+            serializer = self.get_serializer(cart)
+            return Response(serializer.data)
+        return Response({"detail": "Cart not found"}, status=status.HTTP_404_NOT_FOUND)
+
     def get_object(self):
         """Get or create cart for the user"""
         cart, created = Cart.objects.get_or_create(user=self.request.user)
