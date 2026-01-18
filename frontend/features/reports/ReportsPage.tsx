@@ -256,7 +256,7 @@ const ReportsPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="h-[calc(100vh-140px)]">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
