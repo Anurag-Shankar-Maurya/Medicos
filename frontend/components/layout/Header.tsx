@@ -1,10 +1,14 @@
 import React from 'react';
-import { Bell, Search, Moon, Sun, Monitor } from 'lucide-react';
+import { Bell, Search, Moon, Sun, Monitor, ShoppingCart } from 'lucide-react';
 import { useTheme, useAuth } from '../../app/providers';
+import { useCart } from '../../app/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 export const Header = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { cartCount } = useCart();
+  const navigate = useNavigate();
 
   const toggleTheme = () => {
     if (theme === 'light') setTheme('dark');
@@ -42,6 +46,19 @@ export const Header = () => {
           title={`Theme: ${theme}`}
         >
           {getThemeIcon()}
+        </button>
+
+        <button
+          onClick={() => navigate('/cart')}
+          className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg relative transition-colors"
+          title="Shopping Cart"
+        >
+          <ShoppingCart size={20} />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
         </button>
 
         <button className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg relative transition-colors">

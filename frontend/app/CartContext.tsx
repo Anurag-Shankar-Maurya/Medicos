@@ -1,72 +1,146 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Medicine } from '../types';
 import { useToast } from '../components/common/Toast';
+import { apiClient } from '../services/apiClient';
 
-export interface CartItem extends Medicine {
+export interface CartItem {
+  id: number;
+  cart: number;
+  medicine: Medicine;
+  medicine_name: string;
+  medicine_price: string;
   quantity: number;
+  total_price: string;
+}
+
+interface Cart {
+  id: number;
+  user: number;
+  items: CartItem[];
+  total_items: number;
+  total_amount: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface CartContextType {
-  cart: CartItem[];
-  addToCart: (medicine: Medicine) => void;
-  removeFromCart: (id: number) => void;
-  updateQuantity: (id: number, delta: number) => void;
-  clearCart: () => void;
+  cart: Cart | null;
+  loading: boolean;
+  addToCart: (medicine: Medicine, quantity?: number) => Promise<void>;
+  removeFromCart: (cartItemId: number) => Promise<void>;
+  updateQuantity: (cartItemId: number, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+  refreshCart: () => Promise<void>;
   cartCount: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<Cart | null>(null);
+  const [loading, setLoading] = useState(false);
   const { addToast } = useToast();
 
-  const addToCart = (medicine: Medicine) => {
+  const refreshCart = async () => {
+    try {
+      setLoading(true);
+      const cartData = await apiClient.get<Cart>('/medicines/cart/');
+      setCart(cartData);
+    } catch (error: any) {
+      console.error('Failed to load cart:', error);
+      // Cart might not exist yet, which is fine
+      setCart(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshCart();
+  }, []);
+
+  const addToCart = async (medicine: Medicine, quantity: number = 1) => {
     if (medicine.quantity_in_stock <= 0) {
       addToast(`${medicine.name} is out of stock!`, "error");
       return;
     }
 
-    setCart(prevCart => {
-      const existing = prevCart.find(item => item.id === medicine.id);
-      if (existing) {
-        if (existing.quantity >= medicine.quantity_in_stock) {
-          addToast("Cannot add more than available stock", "warning");
-          return prevCart;
-        }
-        addToast(`Increased ${medicine.name} quantity`, "success");
-        return prevCart.map(item => item.id === medicine.id ? { ...item, quantity: item.quantity + 1 } : item);
-      }
+    try {
+      setLoading(true);
+      const response = await apiClient.post<Cart>('/medicines/cart/add_item/', {
+        medicine_id: medicine.id,
+        quantity
+      });
+      setCart(response);
       addToast(`Added ${medicine.name} to cart`, "success");
-      return [...prevCart, { ...medicine, quantity: 1 }];
-    });
+    } catch (error: any) {
+      console.error('Failed to add to cart:', error);
+      addToast(error.message || 'Failed to add item to cart', "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeFromCart = (id: number) => {
-    setCart(prev => prev.filter(item => item.id !== id));
+  const removeFromCart = async (cartItemId: number) => {
+    try {
+      setLoading(true);
+      const response = await apiClient.post<Cart>('/medicines/cart/remove_item/', {
+        cart_item_id: cartItemId
+      });
+      setCart(response);
+      addToast('Item removed from cart', "success");
+    } catch (error: any) {
+      console.error('Failed to remove from cart:', error);
+      addToast(error.message || 'Failed to remove item from cart', "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateQuantity = (id: number, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = item.quantity + delta;
-        if (newQty < 1) return item;
-        if (newQty > item.quantity_in_stock) {
-          addToast("Limit reached - stock currently at " + item.quantity_in_stock, "warning");
-          return item;
-        }
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
+  const updateQuantity = async (cartItemId: number, quantity: number) => {
+    try {
+      setLoading(true);
+      const response = await apiClient.post<Cart>('/medicines/cart/update_item/', {
+        cart_item_id: cartItemId,
+        quantity
+      });
+      setCart(response);
+      addToast('Cart updated', "success");
+    } catch (error: any) {
+      console.error('Failed to update cart:', error);
+      addToast(error.message || 'Failed to update cart', "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.post<Cart>('/medicines/cart/clear_cart/', {});
+      setCart(response);
+      addToast('Cart cleared', "success");
+    } catch (error: any) {
+      console.error('Failed to clear cart:', error);
+      addToast(error.message || 'Failed to clear cart', "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cart?.total_items || 0;
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount }}>
+    <CartContext.Provider value={{
+      cart,
+      loading,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      refreshCart,
+      cartCount
+    }}>
       {children}
     </CartContext.Provider>
   );

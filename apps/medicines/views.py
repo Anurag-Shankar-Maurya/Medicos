@@ -9,8 +9,8 @@ from datetime import timedelta
 import uuid
 from decimal import Decimal
 
-from .models import Medicine, Sale, SaleItem
-from .serializers import MedicineSerializer, SaleSerializer, SaleItemSerializer
+from .models import Medicine, Sale, SaleItem, Cart, CartItem
+from .serializers import MedicineSerializer, SaleSerializer, SaleItemSerializer, CartSerializer, CartItemSerializer
 
 # ==========================================
 # VIEWSETS (CRUD OPERATIONS)
@@ -216,6 +216,106 @@ class SaleItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(medicine_id=medicine)
 
         return queryset.order_by('-id')
+
+
+class CartViewSet(viewsets.ModelViewSet):
+    """ViewSet for shopping cart"""
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user).prefetch_related('items__medicine')
+
+    def get_object(self):
+        """Get or create cart for the user"""
+        cart, created = Cart.objects.get_or_create(user=self.request.user)
+        return cart
+
+    @action(detail=False, methods=['post'])
+    def add_item(self, request):
+        """Add medicine to cart"""
+        medicine_id = request.data.get('medicine_id')
+        quantity = request.data.get('quantity', 1)
+
+        try:
+            medicine = Medicine.objects.get(id=medicine_id, is_active=True)
+        except Medicine.DoesNotExist:
+            return Response({"error": "Medicine not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if quantity <= 0:
+            return Response({"error": "Quantity must be greater than 0"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if medicine.quantity_in_stock < quantity:
+            return Response({"error": f"Insufficient stock. Available: {medicine.quantity_in_stock}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        cart, created = Cart.objects.get_or_create(user=request.user)
+
+        cart_item, item_created = CartItem.objects.get_or_create(
+            cart=cart,
+            medicine=medicine,
+            defaults={'quantity': quantity}
+        )
+
+        if not item_created:
+            new_quantity = cart_item.quantity + quantity
+            if medicine.quantity_in_stock < new_quantity:
+                return Response({"error": f"Insufficient stock for total quantity. Available: {medicine.quantity_in_stock}"}, status=status.HTTP_400_BAD_REQUEST)
+            cart_item.quantity = new_quantity
+            cart_item.save()
+
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'])
+    def update_item(self, request):
+        """Update quantity of cart item"""
+        cart_item_id = request.data.get('cart_item_id')
+        quantity = request.data.get('quantity')
+
+        try:
+            cart_item = CartItem.objects.get(id=cart_item_id, cart__user=request.user)
+        except CartItem.DoesNotExist:
+            return Response({"error": "Cart item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if quantity <= 0:
+            cart_item.delete()
+            cart = self.get_object()
+            serializer = self.get_serializer(cart)
+            return Response(serializer.data)
+
+        if cart_item.medicine.quantity_in_stock < quantity:
+            return Response({"error": f"Insufficient stock. Available: {cart_item.medicine.quantity_in_stock}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        cart_item.quantity = quantity
+        cart_item.save()
+
+        cart = self.get_object()
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def remove_item(self, request):
+        """Remove item from cart"""
+        cart_item_id = request.data.get('cart_item_id')
+
+        try:
+            cart_item = CartItem.objects.get(id=cart_item_id, cart__user=request.user)
+            cart_item.delete()
+        except CartItem.DoesNotExist:
+            return Response({"error": "Cart item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        cart = self.get_object()
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def clear_cart(self, request):
+        """Clear all items from cart"""
+        cart = self.get_object()
+        cart.items.all().delete()
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data)
 
 
 # ==========================================

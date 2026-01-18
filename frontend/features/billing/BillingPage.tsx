@@ -10,6 +10,7 @@ import { useCart } from '../../app/CartContext';
 
 export const BillingPage = () => {
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const cartItems = cart?.items || [];
   const [searchValue, setSearchValue] = useState('');
   const [searchResults, setSearchResults] = useState<Medicine[]>([]);
   const [searching, setSearching] = useState(false);
@@ -40,16 +41,16 @@ export const BillingPage = () => {
     }
   };
 
-  const calculateSubtotal = () => cart.reduce((sum, item) => sum + (parseFloat(item.selling_price) * item.quantity), 0);
-  const calculateTax = () => cart.reduce((sum, item) => {
-    const itemSubtotal = parseFloat(item.selling_price) * item.quantity;
-    const gstRate = item.gst_percentage || 12; // Fallback to 12 if not set
+  const calculateSubtotal = () => cartItems.reduce((sum, item) => sum + (parseFloat(item.medicine_price) * item.quantity), 0);
+  const calculateTax = () => cartItems.reduce((sum, item) => {
+    const itemSubtotal = parseFloat(item.medicine_price) * item.quantity;
+    const gstRate = item.medicine.gst_percentage || 12; // Fallback to 12 if not set
     return sum + (itemSubtotal * gstRate / 100);
   }, 0);
   const calculateTotal = () => calculateSubtotal() + calculateTax();
 
   const handleCheckout = async () => {
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
       addToast("Cart is empty", "error");
       return;
     }
@@ -62,10 +63,10 @@ export const BillingPage = () => {
         doctor_name: doctorName || undefined,
         doctor_registration: doctorRegistration || undefined,
         payment_method: paymentMethod,
-        items: cart.map(item => ({
-          medicine_id: item.id,
+        items: cartItems.map(item => ({
+          medicine_id: item.medicine.id,
           quantity: item.quantity,
-          price: item.selling_price
+          price: item.medicine_price
         }))
       };
 
@@ -137,11 +138,11 @@ export const BillingPage = () => {
             <h2 className="font-bold text-slate-900 dark:text-white flex items-center">
               <ShoppingCart size={18} className="mr-2 text-primary-600" /> Current Order
             </h2>
-            <span className="text-sm font-medium text-slate-500">{cart.length} items</span>
+            <span className="text-sm font-medium text-slate-500">{cartItems.length} items</span>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-4">
-            {cart.length === 0 ? (
+            {cartItems.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
                 <ShoppingCart size={48} strokeWidth={1} />
                 <p>Your cart is empty. Search for medicines to start.</p>
@@ -158,23 +159,23 @@ export const BillingPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  {cart.map(item => (
+                  {cartItems.map(item => (
                     <tr key={item.id} className="group">
                       <td className="py-4 px-2">
-                        <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
-                        <div className="text-xs text-slate-500">${item.selling_price} / unit</div>
+                        <div className="font-semibold text-slate-900 dark:text-white">{item.medicine_name}</div>
+                        <div className="text-xs text-slate-500">${item.medicine_price} / unit</div>
                       </td>
                       <td className="py-4 px-2">
                         <div className="flex items-center justify-center space-x-2">
-                          <button 
-                             onClick={() => updateQuantity(item.id, -1)}
+                          <button
+                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
                              className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors"
                           >
                              <Minus size={14} />
                           </button>
                           <span className="font-bold w-6 text-center">{item.quantity}</span>
-                          <button 
-                             onClick={() => updateQuantity(item.id, 1)}
+                          <button
+                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                              className="p-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors"
                           >
                              <Plus size={14} />
@@ -182,13 +183,13 @@ export const BillingPage = () => {
                         </div>
                       </td>
                       <td className="py-4 px-2 text-right text-slate-600 dark:text-slate-400">
-                        ${item.selling_price}
+                        ${item.medicine_price}
                       </td>
                       <td className="py-4 px-2 text-right font-bold text-slate-900 dark:text-white">
-                        ${(parseFloat(item.selling_price) * item.quantity).toFixed(2)}
+                        ${item.total_price}
                       </td>
                       <td className="py-4 text-right">
-                        <button 
+                        <button
                           onClick={() => removeFromCart(item.id)}
                           className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                         >

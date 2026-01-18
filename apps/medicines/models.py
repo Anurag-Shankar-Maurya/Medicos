@@ -216,3 +216,39 @@ class SaleItem(models.Model):
         self.tax_amount = (taxable_amount * self.gst_percentage) / 100
         self.total = taxable_amount + self.tax_amount
         super().save(*args, **kwargs)
+
+
+class Cart(models.Model):
+    """Shopping cart for users"""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='cart'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cart for {self.user.get_full_name()}"
+
+    @property
+    def total_items(self):
+        return sum(item.quantity for item in self.items.all())
+
+    @property
+    def total_amount(self):
+        return sum(item.total_price for item in self.items.all())
+
+
+class CartItem(models.Model):
+    """Individual items in the cart"""
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+
+    def __str__(self):
+        return f"{self.medicine.name} x {self.quantity}"
+
+    @property
+    def total_price(self):
+        return self.medicine.selling_price * self.quantity

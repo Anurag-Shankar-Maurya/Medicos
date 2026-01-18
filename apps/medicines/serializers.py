@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Medicine, Sale, SaleItem
+from .models import Medicine, Sale, SaleItem, Cart, CartItem
 
 class MedicineSerializer(serializers.ModelSerializer):
     """Serializer for medicines"""
@@ -89,3 +89,42 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def get_change_returned(self, obj):
         return obj.change_returned
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    """Serializer for cart items"""
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    medicine_price = serializers.DecimalField(source='medicine.selling_price', max_digits=10, decimal_places=2, read_only=True)
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CartItem
+        fields = [
+            'id', 'cart', 'medicine', 'medicine_name', 'medicine_price',
+            'quantity', 'total_price'
+        ]
+        read_only_fields = ['medicine_name', 'medicine_price', 'total_price']
+
+    def get_total_price(self, obj):
+        return obj.total_price
+
+
+class CartSerializer(serializers.ModelSerializer):
+    """Serializer for cart with nested items"""
+    items = CartItemSerializer(many=True, read_only=True)
+    total_items = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cart
+        fields = [
+            'id', 'user', 'items', 'total_items', 'total_amount',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['user', 'total_items', 'total_amount', 'created_at', 'updated_at']
+
+    def get_total_items(self, obj):
+        return obj.total_items
+
+    def get_total_amount(self, obj):
+        return obj.total_amount

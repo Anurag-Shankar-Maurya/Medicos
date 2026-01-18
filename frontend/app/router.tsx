@@ -5,6 +5,7 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { MedicineList } from '../features/inventory/MedicineList';
 import { BillingPage } from '../features/billing/BillingPage';
+import { CartPage } from '../features/cart/CartPage';
 import { useAuth } from './providers';
 
 // Guard for protected routes
@@ -36,6 +37,7 @@ export const AppRouter = () => {
         }>
           <Route index element={<DashboardPage />} />
           <Route path="inventory" element={<MedicineList />} />
+          <Route path="cart" element={<CartPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="sales" element={<div className="p-10 text-center text-slate-500">Sales History Module Coming Soon</div>} />
           <Route path="reports" element={<div className="p-10 text-center text-slate-500">Reports Module Coming Soon</div>} />
