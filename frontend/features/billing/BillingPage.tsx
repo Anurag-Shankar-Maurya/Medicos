@@ -6,6 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { useToast } from '../../components/common/Toast';
 import { Spinner } from '../../components/common/Spinner';
+import { ClearCartModal } from '../../components/common/ClearCartModal';
 import { useCart } from '../../app/CartContext';
 
 export const BillingPage = () => {
@@ -20,6 +21,7 @@ export const BillingPage = () => {
   const [doctorRegistration, setDoctorRegistration] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'upi'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
   const { addToast } = useToast();
 
   const handleSearch = async (val: string) => {
@@ -144,12 +146,7 @@ export const BillingPage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to clear the cart?')) {
-                      clearCart();
-                      addToast('Cart cleared successfully', 'success');
-                    }
-                  }}
+                  onClick={() => setIsClearCartModalOpen(true)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 hover:border-red-300"
                   leftIcon={<Trash2 size={14} />}
                 >
@@ -302,6 +299,15 @@ export const BillingPage = () => {
           </div>
         </div>
       </div>
+
+      <ClearCartModal
+        isOpen={isClearCartModalOpen}
+        onClose={() => setIsClearCartModalOpen(false)}
+        onConfirm={() => {
+          clearCart();
+          addToast('Cart cleared successfully', 'success');
+        }}
+      />
     </div>
   );
 };

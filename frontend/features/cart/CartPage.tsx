@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, ArrowRight } from 'lucide-react';
 import { useCart } from '../../app/CartContext';
 import { Button } from '../../components/common/Button';
 import { Spinner } from '../../components/common/Spinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { ClearCartModal } from '../../components/common/ClearCartModal';
+import { useToast } from '../../components/common/Toast';
 import { useNavigate } from 'react-router-dom';
 
 export const CartPage = () => {
   const { cart, loading, removeFromCart, updateQuantity, clearCart } = useCart();
   const navigate = useNavigate();
+  const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
+  const { addToast } = useToast();
 
   const handleQuantityChange = async (cartItemId: number, newQuantity: number) => {
     if (newQuantity < 1) {
@@ -53,7 +57,7 @@ export const CartPage = () => {
         </div>
         <Button
           variant="outline"
-          onClick={clearCart}
+          onClick={() => setIsClearCartModalOpen(true)}
           leftIcon={<Trash2 size={18} />}
           className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
         >
@@ -153,6 +157,15 @@ export const CartPage = () => {
           </div>
         </div>
       </div>
+
+      <ClearCartModal
+        isOpen={isClearCartModalOpen}
+        onClose={() => setIsClearCartModalOpen(false)}
+        onConfirm={() => {
+          clearCart();
+          addToast('Cart cleared successfully', 'success');
+        }}
+      />
     </div>
   );
 };
