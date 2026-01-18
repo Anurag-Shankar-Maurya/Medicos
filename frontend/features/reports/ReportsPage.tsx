@@ -3,6 +3,28 @@ import { apiClient } from '../../services/apiClient';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Spinner } from '../../components/common/Spinner';
+import { MetricCard } from './MetricCard';
+import {
+  BarChart3,
+  TrendingUp,
+  Package,
+  DollarSign,
+  Users,
+  Calendar,
+  Filter,
+  Download,
+  Search,
+  PieChart,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  TrendingDown,
+  Target,
+  Zap
+} from 'lucide-react';
 
 interface ReportData {
   [key: string]: any;
@@ -12,6 +34,7 @@ const ReportsPage: React.FC = () => {
   const [activeReport, setActiveReport] = useState('stock-status');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState({
     start_date: '',
     end_date: ''
@@ -23,21 +46,100 @@ const ReportsPage: React.FC = () => {
     manufacturer: '',
     requires_prescription: ''
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   const reports = [
-    { id: 'stock-status', name: 'Stock Status', description: 'Low stock, out of stock, and overstock analysis' },
-    { id: 'medicine-catalog', name: 'Medicine Catalog', description: 'Complete list of all medicines' },
-    { id: 'profit-margin', name: 'Profit Margin Analysis', description: 'Profit margins by medicine' },
-    { id: 'sales-summary', name: 'Sales Summary', description: 'Overall sales performance' },
-    { id: 'top-selling-medicines', name: 'Top Selling Medicines', description: 'Best performing medicines' },
-    { id: 'payment-method-analysis', name: 'Payment Methods', description: 'Payment method breakdown' },
-    { id: 'gst-analysis', name: 'GST Analysis', description: 'GST collection and inventory analysis' },
-    { id: 'inventory-valuation', name: 'Inventory Valuation', description: 'Stock value analysis' },
-    { id: 'medicine-by-type', name: 'Medicines by Type', description: 'Analysis by medicine category' },
-    { id: 'medicine-by-manufacturer', name: 'Medicines by Manufacturer', description: 'Analysis by manufacturer' },
-    { id: 'sales-by-period', name: 'Sales by Period', description: 'Daily/weekly/monthly sales trends' },
-    { id: 'tax-collection', name: 'Tax Collection', description: 'Tax collection summary' },
-    { id: 'notification-summary', name: 'Notification Summary', description: 'Notification system analysis' }
+    {
+      id: 'stock-status',
+      name: 'Stock Status',
+      description: 'Low stock, out of stock, and overstock analysis',
+      icon: Package,
+      color: 'blue'
+    },
+    {
+      id: 'medicine-catalog',
+      name: 'Medicine Catalog',
+      description: 'Complete list of all medicines',
+      icon: FileText,
+      color: 'green'
+    },
+    {
+      id: 'profit-margin',
+      name: 'Profit Margin Analysis',
+      description: 'Profit margins by medicine',
+      icon: TrendingUp,
+      color: 'purple'
+    },
+    {
+      id: 'sales-summary',
+      name: 'Sales Summary',
+      description: 'Overall sales performance',
+      icon: DollarSign,
+      color: 'emerald'
+    },
+    {
+      id: 'top-selling-medicines',
+      name: 'Top Selling Medicines',
+      description: 'Best performing medicines',
+      icon: Target,
+      color: 'orange'
+    },
+    {
+      id: 'payment-method-analysis',
+      name: 'Payment Methods',
+      description: 'Payment method breakdown',
+      icon: PieChart,
+      color: 'indigo'
+    },
+    {
+      id: 'gst-analysis',
+      name: 'GST Analysis',
+      description: 'GST collection and inventory analysis',
+      icon: BarChart3,
+      color: 'teal'
+    },
+    {
+      id: 'inventory-valuation',
+      name: 'Inventory Valuation',
+      description: 'Stock value analysis',
+      icon: Activity,
+      color: 'cyan'
+    },
+    {
+      id: 'medicine-by-type',
+      name: 'Medicines by Type',
+      description: 'Analysis by medicine category',
+      icon: Package,
+      color: 'rose'
+    },
+    {
+      id: 'medicine-by-manufacturer',
+      name: 'Medicines by Manufacturer',
+      description: 'Analysis by manufacturer',
+      icon: Users,
+      color: 'amber'
+    },
+    {
+      id: 'sales-by-period',
+      name: 'Sales by Period',
+      description: 'Daily/weekly/monthly sales trends',
+      icon: Calendar,
+      color: 'violet'
+    },
+    {
+      id: 'tax-collection',
+      name: 'Tax Collection',
+      description: 'Tax collection summary',
+      icon: FileText,
+      color: 'slate'
+    },
+    {
+      id: 'notification-summary',
+      name: 'Notification Summary',
+      description: 'Notification system analysis',
+      icon: AlertTriangle,
+      color: 'red'
+    }
   ];
 
   const fetchReportData = async () => {
@@ -76,17 +178,38 @@ const ReportsPage: React.FC = () => {
     fetchReportData();
   }, [activeReport]);
 
+  const handleExport = () => {
+    // Simple CSV export functionality
+    if (!reportData) return;
+
+    const dataStr = JSON.stringify(reportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${activeReport}-report.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const renderReportContent = () => {
     if (loading) {
       return (
-        <div className="flex justify-center items-center h-64">
+        <div className="flex flex-col items-center justify-center h-96">
           <Spinner size="lg" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Generating report...</p>
         </div>
       );
     }
 
     if (!reportData) {
-      return <div className="text-center text-gray-500">No data available</div>;
+      return (
+        <div className="flex flex-col items-center justify-center h-96 text-center">
+          <BarChart3 className="w-16 h-16 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Data Available</h3>
+          <p className="text-gray-600 dark:text-gray-400">Select a report and apply filters to generate insights</p>
+        </div>
+      );
     }
 
     switch (activeReport) {
@@ -117,82 +240,183 @@ const ReportsPage: React.FC = () => {
       case 'notification-summary':
         return <NotificationSummaryReport data={reportData} />;
       default:
-        return <div>Select a report to view</div>;
+        return (
+          <div className="flex flex-col items-center justify-center h-96 text-center">
+            <FileText className="w-16 h-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Select a Report</h3>
+            <p className="text-gray-600 dark:text-gray-400">Choose a report from the sidebar to view detailed analytics</p>
+          </div>
+        );
     }
   };
 
+  const filteredReports = reports.filter(report =>
+    report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    report.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Reports</h1>
-        <p className="text-gray-600 dark:text-gray-400">Comprehensive analytics and insights for your pharmacy</p>
-      </div>
-
-      {/* Date Range Filters */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Start Date
-            </label>
-            <Input
-              type="date"
-              value={dateRange.start_date}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, start_date: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              End Date
-            </label>
-            <Input
-              type="date"
-              value={dateRange.end_date}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, end_date: e.target.value }))}
-            />
-          </div>
-          <Button onClick={fetchReportData} disabled={loading}>
-            Generate Report
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Report Navigation */}
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Available Reports</h3>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <BarChart3 className="w-10 h-10 text-primary-600" />
+                Reports & Analytics
+              </h1>
+              <p className="mt-2 text-xl text-gray-600 dark:text-gray-400">
+                Comprehensive insights and business intelligence for your pharmacy
+              </p>
             </div>
-            <div className="p-2">
-              {reports.map((report) => (
-                <button
-                  key={report.id}
-                  onClick={() => setActiveReport(report.id)}
-                  className={`w-full text-left p-3 rounded-lg mb-1 transition-colors ${
-                    activeReport === report.id
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800'
-                      : 'hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <div className="font-medium text-sm">{report.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{report.description}</div>
-                </button>
-              ))}
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+              </Button>
+              <Button
+                onClick={handleExport}
+                disabled={!reportData}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Report Content */}
-        <div className="lg:col-span-3">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
-            <div className="p-4 border-b border-gray-200 dark:border-slate-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {reports.find(r => r.id === activeReport)?.name}
-              </h2>
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 mb-8 border border-gray-200 dark:border-slate-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Start Date
+                </label>
+                <Input
+                  type="date"
+                  value={dateRange.start_date}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, start_date: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  End Date
+                </label>
+                <Input
+                  type="date"
+                  value={dateRange.end_date}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, end_date: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Limit Results
+                </label>
+                <Input
+                  type="number"
+                  value={filters.limit}
+                  onChange={(e) => setFilters(prev => ({ ...prev, limit: e.target.value }))}
+                  min="1"
+                  max="100"
+                  className="w-full"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={fetchReportData} disabled={loading} className="w-full">
+                  {loading ? 'Generating...' : 'Generate Report'}
+                </Button>
+              </div>
             </div>
-            <div className="p-6">
-              {renderReportContent()}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Report Navigation */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Search reports..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full"
+                  />
+                </div>
+              </div>
+              <div className="p-4 max-h-96 overflow-y-auto">
+                {filteredReports.map((report) => {
+                  const IconComponent = report.icon;
+                  const isActive = activeReport === report.id;
+
+                  return (
+                    <button
+                      key={report.id}
+                      onClick={() => setActiveReport(report.id)}
+                      className={`w-full text-left p-4 rounded-xl mb-2 transition-all duration-200 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg transform scale-105'
+                          : 'hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <IconComponent className={`w-5 h-5 ${isActive ? 'text-white' : `text-${report.color}-500`}`} />
+                        <div>
+                          <div className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                            {report.name}
+                          </div>
+                          <div className={`text-xs mt-1 ${isActive ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                            {report.description}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Report Content */}
+          <div className="lg:col-span-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const activeReportData = reports.find(r => r.id === activeReport);
+                      const IconComponent = activeReportData?.icon || BarChart3;
+                      return (
+                        <>
+                          <IconComponent className="w-6 h-6 text-primary-600" />
+                          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {activeReportData?.name || 'Reports'}
+                          </h2>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {reportData && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Last updated: {new Date().toLocaleTimeString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="p-6">
+                {renderReportContent()}
+              </div>
             </div>
           </div>
         </div>
@@ -204,23 +428,34 @@ const ReportsPage: React.FC = () => {
 // Report Components
 const StockStatusReport: React.FC<{ data: any }> = ({ data }) => (
   <div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.summary?.total_medicines || 0}</div>
-        <div className="text-sm text-blue-600 dark:text-blue-400">Total Medicines</div>
-      </div>
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{data.summary?.low_stock_count || 0}</div>
-        <div className="text-sm text-yellow-600 dark:text-yellow-400">Low Stock</div>
-      </div>
-      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{data.summary?.out_of_stock_count || 0}</div>
-        <div className="text-sm text-red-600 dark:text-red-400">Out of Stock</div>
-      </div>
-      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{data.summary?.healthy_stock_count || 0}</div>
-        <div className="text-sm text-green-600 dark:text-green-400">Healthy Stock</div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <MetricCard
+        title="Total Medicines"
+        value={data.summary?.total_medicines || 0}
+        icon={Package}
+        color="blue"
+      />
+      <MetricCard
+        title="Low Stock Alert"
+        value={data.summary?.low_stock_count || 0}
+        subtitle="Needs reorder"
+        icon={AlertTriangle}
+        color="yellow"
+      />
+      <MetricCard
+        title="Out of Stock"
+        value={data.summary?.out_of_stock_count || 0}
+        subtitle="Urgent restock needed"
+        icon={XCircle}
+        color="red"
+      />
+      <MetricCard
+        title="Healthy Stock"
+        value={data.summary?.healthy_stock_count || 0}
+        subtitle="Well stocked items"
+        icon={CheckCircle}
+        color="green"
+      />
     </div>
 
     {data.low_stock?.length > 0 && (
@@ -341,23 +576,35 @@ const MedicineCatalogReport: React.FC<{ data: any }> = ({ data }) => (
 
 const ProfitMarginReport: React.FC<{ data: any }> = ({ data }) => (
   <div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{data.summary?.high_profit_count || 0}</div>
-        <div className="text-sm text-green-600 dark:text-green-400">High Profit (50%+)</div>
-      </div>
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.summary?.medium_profit_count || 0}</div>
-        <div className="text-sm text-blue-600 dark:text-blue-400">Medium Profit (20-50%)</div>
-      </div>
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{data.summary?.low_profit_count || 0}</div>
-        <div className="text-sm text-yellow-600 dark:text-yellow-400">Low Profit (0-20%)</div>
-      </div>
-      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{data.summary?.loss_count || 0}</div>
-        <div className="text-sm text-red-600 dark:text-red-400">Loss Making</div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <MetricCard
+        title="High Profit Medicines"
+        value={data.summary?.high_profit_count || 0}
+        subtitle="50%+ profit margin"
+        icon={TrendingUp}
+        color="green"
+      />
+      <MetricCard
+        title="Medium Profit Medicines"
+        value={data.summary?.medium_profit_count || 0}
+        subtitle="20-50% profit margin"
+        icon={TrendingUp}
+        color="blue"
+      />
+      <MetricCard
+        title="Low Profit Medicines"
+        value={data.summary?.low_profit_count || 0}
+        subtitle="0-20% profit margin"
+        icon={TrendingDown}
+        color="yellow"
+      />
+      <MetricCard
+        title="Loss Making Medicines"
+        value={data.summary?.loss_count || 0}
+        subtitle="Negative profit margin"
+        icon={XCircle}
+        color="red"
+      />
     </div>
 
     {data.high_profit_medicines?.length > 0 && (
@@ -400,23 +647,35 @@ const ProfitMarginReport: React.FC<{ data: any }> = ({ data }) => (
 
 const SalesSummaryReport: React.FC<{ data: any }> = ({ data }) => (
   <div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.summary?.total_sales || 0}</div>
-        <div className="text-sm text-blue-600 dark:text-blue-400">Total Sales</div>
-      </div>
-      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">₹{data.summary?.total_revenue?.toFixed(2) || 0}</div>
-        <div className="text-sm text-green-600 dark:text-green-400">Total Revenue</div>
-      </div>
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">₹{data.summary?.total_tax_collected?.toFixed(2) || 0}</div>
-        <div className="text-sm text-purple-600 dark:text-purple-400">Tax Collected</div>
-      </div>
-      <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">₹{data.summary?.net_sales?.toFixed(2) || 0}</div>
-        <div className="text-sm text-orange-600 dark:text-orange-400">Net Sales</div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <MetricCard
+        title="Total Sales"
+        value={data.summary?.total_sales || 0}
+        subtitle="Number of transactions"
+        icon={DollarSign}
+        color="blue"
+      />
+      <MetricCard
+        title="Total Revenue"
+        value={`₹${data.summary?.total_revenue?.toFixed(2) || 0}`}
+        subtitle="Gross sales amount"
+        icon={TrendingUp}
+        color="green"
+      />
+      <MetricCard
+        title="Tax Collected"
+        value={`₹${data.summary?.total_tax_collected?.toFixed(2) || 0}`}
+        subtitle="GST collected"
+        icon={FileText}
+        color="purple"
+      />
+      <MetricCard
+        title="Net Sales"
+        value={`₹${data.summary?.net_sales?.toFixed(2) || 0}`}
+        subtitle="Revenue after discounts"
+        icon={Target}
+        color="orange"
+      />
     </div>
 
     {data.period?.start_date && (
@@ -565,23 +824,35 @@ const GSTAnalysisReport: React.FC<{ data: any }> = ({ data }) => (
 
 const InventoryValuationReport: React.FC<{ data: any }> = ({ data }) => (
   <div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.summary?.total_medicines || 0}</div>
-        <div className="text-sm text-blue-600 dark:text-blue-400">Total Medicines</div>
-      </div>
-      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">₹{data.summary?.total_purchase_value?.toFixed(2) || 0}</div>
-        <div className="text-sm text-green-600 dark:text-green-400">Purchase Value</div>
-      </div>
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">₹{data.summary?.total_selling_value?.toFixed(2) || 0}</div>
-        <div className="text-sm text-purple-600 dark:text-purple-400">Selling Value</div>
-      </div>
-      <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">₹{data.summary?.estimated_profit_potential?.toFixed(2) || 0}</div>
-        <div className="text-sm text-orange-600 dark:text-orange-400">Profit Potential</div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <MetricCard
+        title="Total Medicines"
+        value={data.summary?.total_medicines || 0}
+        subtitle="Active inventory items"
+        icon={Package}
+        color="blue"
+      />
+      <MetricCard
+        title="Purchase Value"
+        value={`₹${data.summary?.total_purchase_value?.toFixed(2) || 0}`}
+        subtitle="Total cost invested"
+        icon={DollarSign}
+        color="green"
+      />
+      <MetricCard
+        title="Selling Value"
+        value={`₹${data.summary?.total_selling_value?.toFixed(2) || 0}`}
+        subtitle="Potential revenue"
+        icon={TrendingUp}
+        color="purple"
+      />
+      <MetricCard
+        title="Profit Potential"
+        value={`₹${data.summary?.estimated_profit_potential?.toFixed(2) || 0}`}
+        subtitle="Estimated margin"
+        icon={Target}
+        color="orange"
+      />
     </div>
 
     <div>
@@ -739,23 +1010,35 @@ const SalesByPeriodReport: React.FC<{ data: any }> = ({ data }) => (
 
 const TaxCollectionReport: React.FC<{ data: any }> = ({ data }) => (
   <div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.summary?.sales_count || 0}</div>
-        <div className="text-sm text-blue-600 dark:text-blue-400">Total Sales</div>
-      </div>
-      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">₹{data.summary?.total_tax_collected?.toFixed(2) || 0}</div>
-        <div className="text-sm text-green-600 dark:text-green-400">Tax Collected</div>
-      </div>
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">₹{data.summary?.total_sales?.toFixed(2) || 0}</div>
-        <div className="text-sm text-purple-600 dark:text-purple-400">Total Sales</div>
-      </div>
-      <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{data.summary?.tax_percentage?.toFixed(1) || 0}%</div>
-        <div className="text-sm text-orange-600 dark:text-orange-400">Tax Percentage</div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <MetricCard
+        title="Total Sales"
+        value={data.summary?.sales_count || 0}
+        subtitle="Number of transactions"
+        icon={DollarSign}
+        color="blue"
+      />
+      <MetricCard
+        title="Tax Collected"
+        value={`₹${data.summary?.total_tax_collected?.toFixed(2) || 0}`}
+        subtitle="GST collected"
+        icon={FileText}
+        color="green"
+      />
+      <MetricCard
+        title="Total Sales Value"
+        value={`₹${data.summary?.total_sales?.toFixed(2) || 0}`}
+        subtitle="Gross sales amount"
+        icon={TrendingUp}
+        color="purple"
+      />
+      <MetricCard
+        title="Tax Percentage"
+        value={`${data.summary?.tax_percentage?.toFixed(1) || 0}%`}
+        subtitle="Tax as % of sales"
+        icon={Target}
+        color="orange"
+      />
     </div>
 
     <div>
@@ -796,23 +1079,35 @@ const TaxCollectionReport: React.FC<{ data: any }> = ({ data }) => (
 
 const NotificationSummaryReport: React.FC<{ data: any }> = ({ data }) => (
   <div>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.overall_stats?.total_notifications || 0}</div>
-        <div className="text-sm text-blue-600 dark:text-blue-400">Total Notifications</div>
-      </div>
-      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{data.overall_stats?.read_notifications || 0}</div>
-        <div className="text-sm text-green-600 dark:text-green-400">Read</div>
-      </div>
-      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{data.overall_stats?.unread_notifications || 0}</div>
-        <div className="text-sm text-red-600 dark:text-red-400">Unread</div>
-      </div>
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{data.overall_stats?.active_notifications || 0}</div>
-        <div className="text-sm text-purple-600 dark:text-purple-400">Active</div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <MetricCard
+        title="Total Notifications"
+        value={data.overall_stats?.total_notifications || 0}
+        subtitle="All system notifications"
+        icon={AlertTriangle}
+        color="blue"
+      />
+      <MetricCard
+        title="Read Notifications"
+        value={data.overall_stats?.read_notifications || 0}
+        subtitle="Notifications viewed"
+        icon={CheckCircle}
+        color="green"
+      />
+      <MetricCard
+        title="Unread Notifications"
+        value={data.overall_stats?.unread_notifications || 0}
+        subtitle="Requires attention"
+        icon={AlertTriangle}
+        color="red"
+      />
+      <MetricCard
+        title="Active Notifications"
+        value={data.overall_stats?.active_notifications || 0}
+        subtitle="Currently active"
+        icon={Activity}
+        color="purple"
+      />
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
