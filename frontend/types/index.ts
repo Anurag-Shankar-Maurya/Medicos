@@ -14,6 +14,7 @@ export interface User {
   first_name: string;
   last_name: string;
   role: 'admin' | 'pharmacist' | 'cashier' | 'manager';
+  employee_id?: string;
   is_active: boolean;
 }
 

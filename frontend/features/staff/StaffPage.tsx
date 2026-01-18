@@ -205,8 +205,7 @@ export const StaffPage = () => {
                     {/* Phone would be added here if available in User type */}
                   </td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                    {/* Employee ID would be added here if available in User type */}
-                    <span className="text-xs text-slate-400">N/A</span>
+                    <span className="text-sm font-mono">{user.employee_id || '-'}</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
