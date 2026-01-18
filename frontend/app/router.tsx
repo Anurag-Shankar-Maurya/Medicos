@@ -9,6 +9,7 @@ import { CartPage } from '../features/cart/CartPage';
 import { SalesPage } from '../features/sales/SalesPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import ReportsPage from '../features/reports/ReportsPage';
+import { StaffPage } from '../features/staff/StaffPage';
 import { useAuth } from './providers';
 
 // Guard for protected routes
@@ -45,7 +46,7 @@ export const AppRouter = () => {
           <Route path="sales" element={<SalesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="users" element={<div className="p-10 text-center text-slate-500">User Management Module Coming Soon</div>} />
+          <Route path="users" element={<StaffPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
