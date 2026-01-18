@@ -8,7 +8,7 @@ import { Pagination } from '../../components/common/Pagination';
 import { Spinner } from '../../components/common/Spinner';
 import { useToast } from '../../components/common/Toast';
 import { useCart } from '../../app/CartContext';
-import { Plus, Search, Filter, MoreHorizontal, AlertCircle, Edit2, Trash2, Eye, ShoppingCart } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, AlertCircle, Edit2, Trash2, Eye, ShoppingCart, ChevronDown, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { AddMedicineModal } from './AddMedicineModal';
 import { MedicineDetailModal } from './MedicineDetailModal';
@@ -28,7 +28,21 @@ export const MedicineList = () => {
   // Selection States
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
-  
+
+  // Sorting and Filtering States
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    medicine_type: '',
+    manufacturer: '',
+    stock_status: '',
+    requires_prescription: '',
+    schedule_h: '',
+    schedule_x: '',
+    is_active: ''
+  });
+
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
@@ -70,7 +84,7 @@ export const MedicineList = () => {
       await apiClient.delete(`/medicines/medicines/${selectedMedicine.id}/`);
       addToast('Medicine deleted successfully', 'success');
       setIsDeleteOpen(false);
-      fetchMedicines(currentPage, searchQuery);
+      fetchMedicines(currentPage, searchQuery, sortBy, filters);
     } catch (error: any) {
       addToast(error.message || 'Failed to delete medicine', 'error');
     } finally {
@@ -84,17 +98,32 @@ export const MedicineList = () => {
   const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
-    fetchMedicines(currentPage, searchQuery);
-  }, [currentPage, searchQuery]);
+    fetchMedicines(currentPage, searchQuery, sortBy, filters);
+  }, [currentPage, searchQuery, sortBy, filters]);
 
-  const fetchMedicines = async (page: number, search: string) => {
+  const fetchMedicines = async (page: number, search: string, ordering?: string, filterParams?: any) => {
     try {
       setLoading(true);
-      const res = await apiClient.get<PaginatedResponse<Medicine>>('/medicines/medicines/', {
+      const params: any = {
         page: page.toString(),
         search: search
-      });
-      
+      };
+
+      if (ordering) {
+        params.ordering = ordering;
+      }
+
+      // Add filter parameters
+      if (filterParams) {
+        Object.keys(filterParams).forEach(key => {
+          if (filterParams[key]) {
+            params[key] = filterParams[key];
+          }
+        });
+      }
+
+      const res = await apiClient.get<PaginatedResponse<Medicine>>('/medicines/medicines/', params);
+
       if (res && res.results) {
         setMedicines(res.results);
         setTotalCount(res.count);
@@ -137,16 +166,88 @@ export const MedicineList = () => {
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <Input 
-              placeholder="Search by name or generic..." 
-              icon={<Search size={18} />} 
-              value={searchQuery}
-              onChange={handleSearch}
-            />
+        {/* Sorting and Filtering Controls */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-4">
+          {/* Search and Filter Row */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Search by name or generic..."
+                icon={<Search size={18} />}
+                value={searchQuery}
+                onChange={handleSearch}
+              />
+            </div>
+            <div className="flex gap-2">
+              {/* Sort Dropdown */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors appearance-none pr-8"
+                >
+                  <option value="name">Name (A-Z)</option>
+                  <option value="-name">Name (Z-A)</option>
+                  <option value="generic_name">Generic Name (A-Z)</option>
+                  <option value="-generic_name">Generic Name (Z-A)</option>
+                  <option value="medicine_type">Type (A-Z)</option>
+                  <option value="-medicine_type">Type (Z-A)</option>
+                  <option value="manufacturer">Manufacturer (A-Z)</option>
+                  <option value="-manufacturer">Manufacturer (Z-A)</option>
+                  <option value="quantity_in_stock">Stock (Low-High)</option>
+                  <option value="-quantity_in_stock">Stock (High-Low)</option>
+                  <option value="selling_price">Price (Low-High)</option>
+                  <option value="-selling_price">Price (High-Low)</option>
+                  <option value="profit_margin">Profit % (Low-High)</option>
+                  <option value="-profit_margin">Profit % (High-Low)</option>
+                  <option value="created_at">Date Added (Old-New)</option>
+                  <option value="-created_at">Date Added (New-Old)</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-slate-400" />
+              </div>
+              <Button
+                variant="outline"
+                leftIcon={<Filter size={18} />}
+                onClick={() => setIsFilterModalOpen(true)}
+              >
+                Filter
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" leftIcon={<Filter size={18} />}>Filter</Button>
+
+          {/* Active Filters */}
+          {Object.values(filters).some(f => f) && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(filters).map(([key, value]) => value && (
+                <span
+                  key={key}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full"
+                >
+                  {key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}: {value}
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, [key]: '' }))}
+                    className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              <button
+                onClick={() => setFilters({
+                  medicine_type: '',
+                  manufacturer: '',
+                  stock_status: '',
+                  requires_prescription: '',
+                  schedule_h: '',
+                  schedule_x: '',
+                  is_active: ''
+                })}
+                className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-x-auto">
@@ -285,10 +386,10 @@ export const MedicineList = () => {
         />
       </div>
 
-      <AddMedicineModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSuccess={() => fetchMedicines(currentPage, searchQuery)}
+      <AddMedicineModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => fetchMedicines(currentPage, searchQuery, sortBy, filters)}
         medicine={selectedMedicine}
       />
 
@@ -306,6 +407,166 @@ export const MedicineList = () => {
         title="Delete Medicine"
         message={`Are you sure you want to delete ${selectedMedicine?.name}? This action cannot be undone.`}
       />
+
+      {/* Filter Modal */}
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Filter Medicines</h3>
+                <button
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Medicine Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Medicine Type
+                </label>
+                <select
+                  value={filters.medicine_type}
+                  onChange={(e) => setFilters(prev => ({ ...prev, medicine_type: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Types</option>
+                  <option value="tablet">Tablet</option>
+                  <option value="capsule">Capsule</option>
+                  <option value="syrup">Syrup</option>
+                  <option value="injection">Injection</option>
+                  <option value="cream">Cream</option>
+                  <option value="ointment">Ointment</option>
+                  <option value="drops">Drops</option>
+                  <option value="powder">Powder</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Manufacturer Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Manufacturer
+                </label>
+                <Input
+                  placeholder="Enter manufacturer name..."
+                  value={filters.manufacturer}
+                  onChange={(e) => setFilters(prev => ({ ...prev, manufacturer: e.target.value }))}
+                />
+              </div>
+
+              {/* Stock Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Stock Status
+                </label>
+                <select
+                  value={filters.stock_status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, stock_status: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Stock Levels</option>
+                  <option value="low_stock">Low Stock</option>
+                  <option value="out_of_stock">Out of Stock</option>
+                  <option value="overstock">Overstock</option>
+                  <option value="normal">Normal Stock</option>
+                </select>
+              </div>
+
+              {/* Prescription Required Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Prescription Required
+                </label>
+                <select
+                  value={filters.requires_prescription}
+                  onChange={(e) => setFilters(prev => ({ ...prev, requires_prescription: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Medicines</option>
+                  <option value="true">Prescription Required</option>
+                  <option value="false">No Prescription Required</option>
+                </select>
+              </div>
+
+              {/* Schedule H Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Schedule H
+                </label>
+                <select
+                  value={filters.schedule_h}
+                  onChange={(e) => setFilters(prev => ({ ...prev, schedule_h: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Medicines</option>
+                  <option value="true">Schedule H Drugs</option>
+                  <option value="false">Non-Schedule H Drugs</option>
+                </select>
+              </div>
+
+              {/* Schedule X Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Schedule X
+                </label>
+                <select
+                  value={filters.schedule_x}
+                  onChange={(e) => setFilters(prev => ({ ...prev, schedule_x: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Medicines</option>
+                  <option value="true">Schedule X Drugs</option>
+                  <option value="false">Non-Schedule X Drugs</option>
+                </select>
+              </div>
+
+              {/* Active Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Status
+                </label>
+                <select
+                  value={filters.is_active}
+                  onChange={(e) => setFilters(prev => ({ ...prev, is_active: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">All Medicines</option>
+                  <option value="true">Active Only</option>
+                  <option value="false">Inactive Only</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilters({
+                    medicine_type: '',
+                    manufacturer: '',
+                    stock_status: '',
+                    requires_prescription: '',
+                    schedule_h: '',
+                    schedule_x: '',
+                    is_active: ''
+                  });
+                }}
+              >
+                Clear All
+              </Button>
+              <Button onClick={() => setIsFilterModalOpen(false)}>
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -26,8 +26,15 @@ class MedicineViewSet(viewsets.ModelViewSet):
         queryset = Medicine.objects.select_related('created_by')
         search = self.request.query_params.get('search', None)
         medicine_type = self.request.query_params.get('medicine_type', None)
+        manufacturer = self.request.query_params.get('manufacturer', None)
+        stock_status = self.request.query_params.get('stock_status', None)  # 'low_stock', 'out_of_stock', 'overstock', 'normal'
+        requires_prescription = self.request.query_params.get('requires_prescription', None)
+        schedule_h = self.request.query_params.get('schedule_h', None)
+        schedule_x = self.request.query_params.get('schedule_x', None)
         is_active = self.request.query_params.get('is_active', None)
+        ordering = self.request.query_params.get('ordering', 'name')
 
+        # Search filter
         if search:
             queryset = queryset.filter(
                 Q(name__icontains=search) |
@@ -36,12 +43,51 @@ class MedicineViewSet(viewsets.ModelViewSet):
                 Q(barcode__icontains=search) |
                 Q(sku__icontains=search)
             )
+
+        # Type filters
         if medicine_type:
             queryset = queryset.filter(medicine_type=medicine_type)
+        if manufacturer:
+            queryset = queryset.filter(manufacturer__icontains=manufacturer)
+        if requires_prescription is not None:
+            queryset = queryset.filter(requires_prescription=requires_prescription.lower() == 'true')
+        if schedule_h is not None:
+            queryset = queryset.filter(is_schedule_h=schedule_h.lower() == 'true')
+        if schedule_x is not None:
+            queryset = queryset.filter(is_schedule_x=schedule_x.lower() == 'true')
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
 
-        return queryset.order_by('name')
+        # Stock status filters
+        if stock_status:
+            if stock_status == 'low_stock':
+                queryset = queryset.filter(quantity_in_stock__lte=F('reorder_level'), quantity_in_stock__gt=0)
+            elif stock_status == 'out_of_stock':
+                queryset = queryset.filter(quantity_in_stock__lte=0)
+            elif stock_status == 'overstock':
+                queryset = queryset.filter(quantity_in_stock__gt=F('max_stock_level'))
+            elif stock_status == 'normal':
+                queryset = queryset.filter(quantity_in_stock__gt=F('reorder_level'), quantity_in_stock__lte=F('max_stock_level'))
+
+        # Ordering
+        valid_ordering_fields = [
+            'name', '-name',
+            'generic_name', '-generic_name',
+            'medicine_type', '-medicine_type',
+            'manufacturer', '-manufacturer',
+            'quantity_in_stock', '-quantity_in_stock',
+            'selling_price', '-selling_price',
+            'profit_margin', '-profit_margin',
+            'created_at', '-created_at',
+            'updated_at', '-updated_at'
+        ]
+
+        if ordering in valid_ordering_fields:
+            queryset = queryset.order_by(ordering)
+        else:
+            queryset = queryset.order_by('name')
+
+        return queryset
 
     def perform_create(self, serializer):
         """Set created_by when creating medicine"""
