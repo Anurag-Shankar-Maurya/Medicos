@@ -256,19 +256,14 @@ const ReportsPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <BarChart3 className="w-10 h-10 text-primary-600" />
-                Reports & Analytics
-              </h1>
-              <p className="mt-2 text-xl text-gray-600 dark:text-gray-400">
-                Comprehensive insights and business intelligence for your pharmacy
-              </p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Reports & Analytics</h1>
+              <p className="text-slate-500 mt-1">Comprehensive insights and business intelligence for your pharmacy</p>
             </div>
             <div className="flex items-center gap-4">
               <Button
