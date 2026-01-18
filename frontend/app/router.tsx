@@ -7,6 +7,7 @@ import { MedicineList } from '../features/inventory/MedicineList';
 import { BillingPage } from '../features/billing/BillingPage';
 import { CartPage } from '../features/cart/CartPage';
 import { SalesPage } from '../features/sales/SalesPage';
+import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { useAuth } from './providers';
 
 // Guard for protected routes
@@ -41,6 +42,7 @@ export const AppRouter = () => {
           <Route path="cart" element={<CartPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="sales" element={<SalesPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<div className="p-10 text-center text-slate-500">Reports Module Coming Soon</div>} />
           <Route path="users" element={<div className="p-10 text-center text-slate-500">User Management Module Coming Soon</div>} />
         </Route>

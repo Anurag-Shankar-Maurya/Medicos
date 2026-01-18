@@ -4,6 +4,7 @@ import { useAuth } from '../../app/providers';
 import { Notification } from '../../types';
 import { apiClient } from '../../services/apiClient';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface NotificationDropdownProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface NotificationDropdownProps {
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -200,7 +202,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOp
       {notifications.length > 0 && (
         <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <button
-            onClick={() => {/* Navigate to notifications page */}}
+            onClick={() => {
+              navigate('/notifications');
+              onClose();
+            }}
             className="w-full text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-center"
           >
             View all notifications
