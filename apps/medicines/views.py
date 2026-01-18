@@ -550,3 +550,403 @@ def low_stock_alerts(request):
         'medicines': MedicineSerializer(medicines, many=True).data
     }
     return Response(data)
+
+
+# ==========================================
+# REPORTS VIEWS
+# ==========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def stock_status_report(request):
+    """Stock Status Report - Low Stock, Out of Stock, Overstock"""
+    medicines = Medicine.objects.filter(is_active=True)
+
+    low_stock = medicines.filter(
+        quantity_in_stock__lte=F('reorder_level'),
+        quantity_in_stock__gt=0
+    ).annotate(
+        shortage=F('reorder_level') - F('quantity_in_stock')
+    )
+
+    out_of_stock = medicines.filter(quantity_in_stock__lte=0)
+
+    overstock = medicines.filter(quantity_in_stock__gt=F('max_stock_level'))
+
+    return Response({
+        'summary': {
+            'total_medicines': medicines.count(),
+            'low_stock_count': low_stock.count(),
+            'out_of_stock_count': out_of_stock.count(),
+            'overstock_count': overstock.count(),
+            'healthy_stock_count': medicines.count() - low_stock.count() - out_of_stock.count() - overstock.count()
+        },
+        'low_stock': MedicineSerializer(low_stock, many=True).data,
+        'out_of_stock': MedicineSerializer(out_of_stock, many=True).data,
+        'overstock': MedicineSerializer(overstock, many=True).data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def medicine_catalog_report(request):
+    """Complete Medicine Catalog Report"""
+    medicines = Medicine.objects.filter(is_active=True).select_related('created_by')
+
+    # Add filtering options
+    medicine_type = request.query_params.get('medicine_type')
+    manufacturer = request.query_params.get('manufacturer')
+    requires_prescription = request.query_params.get('requires_prescription')
+
+    if medicine_type:
+        medicines = medicines.filter(medicine_type=medicine_type)
+    if manufacturer:
+        medicines = medicines.filter(manufacturer__icontains=manufacturer)
+    if requires_prescription:
+        medicines = medicines.filter(requires_prescription=requires_prescription.lower() == 'true')
+
+    return Response({
+        'count': medicines.count(),
+        'medicines': MedicineSerializer(medicines, many=True).data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def profit_margin_report(request):
+    """Profit Margin Analysis Report"""
+    medicines = Medicine.objects.filter(is_active=True).annotate(
+        profit_margin=((F('selling_price') - F('purchase_price')) / F('purchase_price') * 100),
+        profit_per_unit=(F('selling_price') - F('purchase_price'))
+    ).order_by('-profit_margin')
+
+    # Categorize by profit margin ranges
+    high_profit = medicines.filter(profit_margin__gte=50)
+    medium_profit = medicines.filter(profit_margin__gte=20, profit_margin__lt=50)
+    low_profit = medicines.filter(profit_margin__gte=0, profit_margin__lt=20)
+    loss = medicines.filter(profit_margin__lt=0)
+
+    return Response({
+        'summary': {
+            'total_medicines': medicines.count(),
+            'high_profit_count': high_profit.count(),
+            'medium_profit_count': medium_profit.count(),
+            'low_profit_count': low_profit.count(),
+            'loss_count': loss.count()
+        },
+        'high_profit_medicines': MedicineSerializer(high_profit[:10], many=True).data,
+        'medium_profit_medicines': MedicineSerializer(medium_profit[:10], many=True).data,
+        'low_profit_medicines': MedicineSerializer(low_profit[:10], many=True).data,
+        'loss_medicines': MedicineSerializer(loss, many=True).data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sales_summary_report(request):
+    """Sales Summary Report"""
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    sales_query = Sale.objects.all()
+    if start_date:
+        sales_query = sales_query.filter(sale_date__date__gte=start_date)
+    if end_date:
+        sales_query = sales_query.filter(sale_date__date__lte=end_date)
+
+    sales_data = sales_query.aggregate(
+        total_sales=Count('id'),
+        total_revenue=Sum('total_amount'),
+        total_tax=Sum('tax_amount'),
+        total_discount=Sum('discount'),
+        total_subtotal=Sum('subtotal')
+    )
+
+    return Response({
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'summary': {
+            'total_sales': sales_data['total_sales'] or 0,
+            'total_revenue': float(sales_data['total_revenue'] or 0),
+            'total_tax_collected': float(sales_data['total_tax'] or 0),
+            'total_discounts': float(sales_data['total_discount'] or 0),
+            'net_sales': float((sales_data['total_revenue'] or 0) - (sales_data['total_discount'] or 0))
+        }
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def top_selling_medicines_report(request):
+    """Top Selling Medicines Report"""
+    limit = int(request.query_params.get('limit', 20))
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    sale_items_query = SaleItem.objects.select_related('medicine', 'sale')
+
+    if start_date:
+        sale_items_query = sale_items_query.filter(sale__sale_date__date__gte=start_date)
+    if end_date:
+        sale_items_query = sale_items_query.filter(sale__sale_date__date__lte=end_date)
+
+    top_medicines = sale_items_query.values(
+        'medicine__name',
+        'medicine__medicine_type',
+        'medicine__manufacturer'
+    ).annotate(
+        total_quantity=Sum('quantity'),
+        total_revenue=Sum('total'),
+        total_tax=Sum('tax_amount'),
+        order_count=Count('sale', distinct=True)
+    ).order_by('-total_quantity')[:limit]
+
+    return Response({
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'top_medicines': list(top_medicines)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def payment_method_analysis_report(request):
+    """Payment Method Analysis Report"""
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    sales_query = Sale.objects.all()
+    if start_date:
+        sales_query = sales_query.filter(sale_date__date__gte=start_date)
+    if end_date:
+        sales_query = sales_query.filter(sale_date__date__lte=end_date)
+
+    payment_analysis = sales_query.values('payment_method').annotate(
+        transaction_count=Count('id'),
+        total_amount=Sum('total_amount'),
+        average_amount=Avg('total_amount')
+    ).order_by('-total_amount')
+
+    return Response({
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'payment_methods': list(payment_analysis)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def gst_analysis_report(request):
+    """GST Analysis Report"""
+    gst_analysis = Medicine.objects.filter(is_active=True).values('gst_percentage').annotate(
+        medicine_count=Count('id'),
+        total_stock_value=Sum(F('quantity_in_stock') * F('selling_price'))
+    ).order_by('gst_percentage')
+
+    # Sales GST collection
+    sales_gst = SaleItem.objects.values('gst_percentage').annotate(
+        total_tax_collected=Sum('tax_amount'),
+        total_sales=Sum('total'),
+        transaction_count=Count('sale', distinct=True)
+    ).order_by('gst_percentage')
+
+    return Response({
+        'inventory_gst_analysis': list(gst_analysis),
+        'sales_gst_analysis': list(sales_gst)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def inventory_valuation_report(request):
+    """Inventory Valuation Report"""
+    medicines = Medicine.objects.filter(is_active=True)
+
+    valuation_data = medicines.aggregate(
+        total_purchase_value=Sum(F('quantity_in_stock') * F('purchase_price')),
+        total_selling_value=Sum(F('quantity_in_stock') * F('selling_price')),
+        total_wholesale_value=Sum(F('quantity_in_stock') * F('wholesale_price')),
+        total_medicines=Count('id')
+    )
+
+    # Breakdown by medicine type
+    type_valuation = medicines.values('medicine_type').annotate(
+        count=Count('id'),
+        purchase_value=Sum(F('quantity_in_stock') * F('purchase_price')),
+        selling_value=Sum(F('quantity_in_stock') * F('selling_price'))
+    ).order_by('-selling_value')
+
+    return Response({
+        'summary': {
+            'total_medicines': valuation_data['total_medicines'],
+            'total_purchase_value': float(valuation_data['total_purchase_value'] or 0),
+            'total_selling_value': float(valuation_data['total_selling_value'] or 0),
+            'total_wholesale_value': float(valuation_data['total_wholesale_value'] or 0),
+            'estimated_profit_potential': float((valuation_data['total_selling_value'] or 0) - (valuation_data['total_purchase_value'] or 0))
+        },
+        'by_type': list(type_valuation)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def medicine_by_type_report(request):
+    """Medicine by Type/Category Report"""
+    type_analysis = Medicine.objects.filter(is_active=True).values('medicine_type').annotate(
+        count=Count('id'),
+        total_stock=Sum('quantity_in_stock'),
+        total_value=Sum(F('quantity_in_stock') * F('selling_price')),
+        low_stock_count=Count('id', filter=Q(quantity_in_stock__lte=F('reorder_level'), quantity_in_stock__gt=0)),
+        out_of_stock_count=Count('id', filter=Q(quantity_in_stock__lte=0))
+    ).order_by('-count')
+
+    return Response({
+        'medicine_types': list(type_analysis)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def medicine_by_manufacturer_report(request):
+    """Medicine by Manufacturer Report"""
+    manufacturer_analysis = Medicine.objects.filter(is_active=True).values('manufacturer').annotate(
+        count=Count('id'),
+        total_stock=Sum('quantity_in_stock'),
+        total_value=Sum(F('quantity_in_stock') * F('selling_price')),
+        avg_profit_margin=Avg((F('selling_price') - F('purchase_price')) / F('purchase_price') * 100)
+    ).order_by('-count')
+
+    return Response({
+        'manufacturers': list(manufacturer_analysis)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sales_by_period_report(request):
+    """Sales by Period Report (Daily/Weekly/Monthly)"""
+    period = request.query_params.get('period', 'daily')  # daily, weekly, monthly
+    limit = int(request.query_params.get('limit', 30))
+
+    # Use Django's built-in date functions
+    from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
+
+    if period == 'daily':
+        sales_data = Sale.objects.annotate(
+            period=TruncDate('sale_date')
+        ).values('period').annotate(
+            sales_count=Count('id'),
+            total_revenue=Sum('total_amount'),
+            total_tax=Sum('tax_amount')
+        ).order_by('-period')[:limit]
+    elif period == 'weekly':
+        sales_data = Sale.objects.annotate(
+            period=TruncWeek('sale_date')
+        ).values('period').annotate(
+            sales_count=Count('id'),
+            total_revenue=Sum('total_amount'),
+            total_tax=Sum('tax_amount')
+        ).order_by('-period')[:limit]
+    else:  # monthly
+        sales_data = Sale.objects.annotate(
+            period=TruncMonth('sale_date')
+        ).values('period').annotate(
+            sales_count=Count('id'),
+            total_revenue=Sum('total_amount'),
+            total_tax=Sum('tax_amount')
+        ).order_by('-period')[:limit]
+
+    return Response({
+        'period_type': period,
+        'data': list(sales_data)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def tax_collection_report(request):
+    """Tax Collection Report"""
+    start_date = request.query_params.get('start_date')
+    end_date = request.query_params.get('end_date')
+
+    sales_query = Sale.objects.all()
+    if start_date:
+        sales_query = sales_query.filter(sale_date__date__gte=start_date)
+    if end_date:
+        sales_query = sales_query.filter(sale_date__date__lte=end_date)
+
+    tax_data = sales_query.aggregate(
+        total_tax_collected=Sum('tax_amount'),
+        total_sales=Sum('total_amount'),
+        total_subtotal=Sum('subtotal'),
+        sales_count=Count('id')
+    )
+
+    # Tax breakdown by GST percentage
+    gst_breakdown = SaleItem.objects.filter(sale__in=sales_query).values('gst_percentage').annotate(
+        tax_collected=Sum('tax_amount'),
+        taxable_amount=Sum('subtotal'),
+        item_count=Count('id')
+    ).order_by('gst_percentage')
+
+    return Response({
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'summary': {
+            'total_tax_collected': float(tax_data['total_tax_collected'] or 0),
+            'total_sales': float(tax_data['total_sales'] or 0),
+            'total_subtotal': float(tax_data['total_subtotal'] or 0),
+            'tax_percentage': float((tax_data['total_tax_collected'] or 0) / (tax_data['total_subtotal'] or 1) * 100),
+            'sales_count': tax_data['sales_count']
+        },
+        'gst_breakdown': list(gst_breakdown)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notification_summary_report(request):
+    """Notification Summary Report"""
+    # Overall notification stats
+    notification_stats = Notification.objects.aggregate(
+        total_notifications=Count('id'),
+        unread_notifications=Count('id', filter=Q(is_read=False)),
+        read_notifications=Count('id', filter=Q(is_read=True)),
+        active_notifications=Count('id', filter=Q(is_active=True))
+    )
+
+    # Notification breakdown by type
+    type_breakdown = Notification.objects.values('notification_type').annotate(
+        count=Count('id'),
+        unread_count=Count('id', filter=Q(is_read=False)),
+        read_count=Count('id', filter=Q(is_read=True))
+    ).order_by('-count')
+
+    # Notification breakdown by priority
+    priority_breakdown = Notification.objects.values('priority').annotate(
+        count=Count('id'),
+        unread_count=Count('id', filter=Q(is_read=False))
+    ).order_by('-count')
+
+    # Recent notifications (last 30 days)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    recent_notifications = Notification.objects.filter(
+        created_at__gte=thirty_days_ago
+    ).values('notification_type').annotate(
+        count=Count('id')
+    ).order_by('-count')
+
+    return Response({
+        'overall_stats': notification_stats,
+        'by_type': list(type_breakdown),
+        'by_priority': list(priority_breakdown),
+        'recent_activity': list(recent_notifications)
+    })
