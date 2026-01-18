@@ -1,10 +1,10 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Sum, Count, F, Avg
+from django.db.models import Sum, Count, F, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
-from .models import Medicine, Sale, SaleItem
+from .models import Medicine, Sale, SaleItem, Notification
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -62,6 +62,29 @@ def dashboard_stats(request):
         count=Count('id')
     ).order_by('-total')
 
+    # Expiring batches calculation (placeholder - assuming 30 days threshold)
+    # Note: Current model doesn't have expiry_date, this is a placeholder
+    expiring_soon_count = 0  # TODO: Implement when batch expiry tracking is added
+
+    # Average profit margin across all medicines
+    avg_profit_margin = Medicine.objects.filter(
+        is_active=True, purchase_price__gt=0
+    ).aggregate(
+        avg_margin=Avg((F('selling_price') - F('purchase_price')) / F('purchase_price') * 100)
+    )['avg_margin'] or 0
+
+    # Notification counts
+    unread_notifications = Notification.objects.filter(
+        user=request.user,
+        is_read=False,
+        is_active=True
+    ).count()
+
+    # Calculate inventory turnover ratio (simplified)
+    # Turnover = Cost of Goods Sold / Average Inventory Value
+    # Using simplified calculation for now
+    inventory_turnover = 0.0  # TODO: Implement proper calculation with historical data
+
     return Response({
         "sales_summary": {
             "todaysRevenue": float(todays_revenue),
@@ -73,9 +96,15 @@ def dashboard_stats(request):
             "totalProducts": total_medicines,
             "lowStockCount": low_stock_count,
             "outOfStockCount": out_of_stock_count,
+            "expiringSoonCount": expiring_soon_count,
             "inventoryCostValue": float(inventory_cost_value),
             "inventoryPotentialValue": float(inventory_sales_value),
-            "estimatedPotentialProfit": float(inventory_sales_value - inventory_cost_value)
+            "estimatedPotentialProfit": float(inventory_sales_value - inventory_cost_value),
+            "averageProfitMargin": float(avg_profit_margin),
+            "inventoryTurnoverRatio": float(inventory_turnover)
+        },
+        "alerts_summary": {
+            "unreadNotifications": unread_notifications
         },
         "payment_analytics": list(payment_breakdown)
     })

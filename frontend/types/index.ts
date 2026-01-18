@@ -130,8 +130,53 @@ export interface Notification {
 
 // Stats for Dashboard
 export interface DashboardStats {
-  totalSales: number;
-  lowStockCount: number;
-  expiringSoonCount: number;
-  todaysRevenue: number;
+  sales_summary: {
+    todaysRevenue: number;
+    todaysTransactions: number;
+    totalLifetimeSales: number;
+    averageOrderValue: number;
+  };
+  inventory_summary: {
+    totalProducts: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+    expiringSoonCount: number;
+    inventoryCostValue: number;
+    inventoryPotentialValue: number;
+    estimatedPotentialProfit: number;
+    averageProfitMargin: number;
+    inventoryTurnoverRatio: number;
+  };
+  alerts_summary: {
+    unreadNotifications: number;
+  };
+  payment_analytics: Array<{
+    payment_method: string;
+    total: number;
+    count: number;
+  }>;
+}
+
+// Additional dashboard interfaces
+export interface TopSellingProduct {
+  medicine__name: string;
+  medicine__medicine_type: string;
+  total_qty: number;
+  total_revenue: number;
+}
+
+export interface RecentTransaction {
+  id: number;
+  invoice: string;
+  customer: string;
+  amount: number;
+  time: string;
+  status: string;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  date: string;
+  sales: number;
+  orders: number;
 }
