@@ -73,6 +73,11 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({ isOpen, onClose,
         delete submitData.password;
       }
 
+      // Don't send empty employee_id since it's optional
+      if (!submitData.employee_id.trim()) {
+        delete submitData.employee_id;
+      }
+
       if (user?.id) {
         await apiClient.put(`/users/users/${user.id}/`, submitData);
         addToast('Staff member updated successfully!', 'success');

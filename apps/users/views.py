@@ -24,8 +24,8 @@ class UserListCreateView(generics.ListCreateAPIView):
         return User.objects.filter(id=user.id)
 
     def perform_create(self, serializer):
-        """Set created_by when creating user"""
-        serializer.save(created_by=self.request.user)
+        """Create user"""
+        serializer.save()
 
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):

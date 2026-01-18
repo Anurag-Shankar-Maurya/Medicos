@@ -20,6 +20,11 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create user with hashed password"""
         password = validated_data.pop('password', None)
+
+        # Remove empty employee_id to avoid unique constraint issues
+        if 'employee_id' in validated_data and not validated_data['employee_id']:
+            validated_data.pop('employee_id')
+
         user = super().create(validated_data)
         if password:
             user.set_password(password)
@@ -29,6 +34,11 @@ class UserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Update user with password hashing if provided"""
         password = validated_data.pop('password', None)
+
+        # Remove empty employee_id to avoid unique constraint issues
+        if 'employee_id' in validated_data and not validated_data['employee_id']:
+            validated_data.pop('employee_id')
+
         user = super().update(instance, validated_data)
         if password:
             user.set_password(password)
