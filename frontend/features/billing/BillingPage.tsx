@@ -138,7 +138,25 @@ export const BillingPage = () => {
             <h2 className="font-bold text-slate-900 dark:text-white flex items-center">
               <ShoppingCart size={18} className="mr-2 text-primary-600" /> Current Order
             </h2>
-            <span className="text-sm font-medium text-slate-500">{cartItems.length} items</span>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-medium text-slate-500">{cartItems.length} items</span>
+              {cartItems.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to clear the cart?')) {
+                      clearCart();
+                      addToast('Cart cleared successfully', 'success');
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 hover:border-red-300"
+                  leftIcon={<Trash2 size={14} />}
+                >
+                  Clear Cart
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
