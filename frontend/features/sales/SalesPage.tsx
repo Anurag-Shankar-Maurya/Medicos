@@ -22,6 +22,16 @@ const PAYMENT_METHODS = [
   { value: 'insurance', label: 'Insurance' },
 ];
 
+const QUICK_DATE_FILTERS = [
+  { label: 'Today', value: 'today' },
+  { label: 'Last 7 Days', value: 'last7days' },
+  { label: 'Last 30 Days', value: 'last30days' },
+  { label: 'This Month', value: 'thisMonth' },
+  { label: 'Last 3 Months', value: 'last3months' },
+  { label: 'Last 6 Months', value: 'last6months' },
+  { label: 'This Year', value: 'thisYear' },
+];
+
 export const SalesPage = () => {
   const [sales, setSales] = useState<PaginatedResponse<Sale> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +84,53 @@ export const SalesPage = () => {
     setCurrentPage(1);
   };
 
+  const formatDateForInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const applyQuickDateFilter = (filter: string) => {
+    const today = new Date();
+    let start: Date;
+    let end: Date = new Date(today);
+
+    switch (filter) {
+      case 'today':
+        start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        break;
+      case 'last7days':
+        start = new Date(today);
+        start.setDate(today.getDate() - 7);
+        break;
+      case 'last30days':
+        start = new Date(today);
+        start.setDate(today.getDate() - 30);
+        break;
+      case 'thisMonth':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'last3months':
+        start = new Date(today);
+        start.setMonth(today.getMonth() - 3);
+        break;
+      case 'last6months':
+        start = new Date(today);
+        start.setMonth(today.getMonth() - 6);
+        break;
+      case 'thisYear':
+        start = new Date(today.getFullYear(), 0, 1);
+        break;
+      default:
+        return;
+    }
+
+    setStartDate(formatDateForInput(start));
+    setEndDate(formatDateForInput(end));
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -85,6 +142,27 @@ export const SalesPage = () => {
         <Button leftIcon={<Download size={18} />}>
           Export
         </Button>
+      </div>
+
+      {/* Quick Date Filters */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center">
+          <Calendar size={18} className="mr-2" />
+          Quick Date Filters
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_DATE_FILTERS.map(filter => (
+            <Button
+              key={filter.value}
+              variant="outline"
+              size="sm"
+              onClick={() => applyQuickDateFilter(filter.value)}
+              className="text-xs"
+            >
+              {filter.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Filters */}

@@ -83,9 +83,9 @@ class SaleViewSet(viewsets.ModelViewSet):
         if payment_method:
             queryset = queryset.filter(payment_method=payment_method)
         if start_date:
-            queryset = queryset.filter(sale_date__gte=start_date)
+            queryset = queryset.filter(sale_date__date__gte=start_date)
         if end_date:
-            queryset = queryset.filter(sale_date__lte=end_date)
+            queryset = queryset.filter(sale_date__date__lte=end_date)
 
         return queryset.order_by('-sale_date')
 
