@@ -82,8 +82,9 @@ class SaleSerializer(serializers.ModelSerializer):
             'created_by_name', 'items'
         ]
         read_only_fields = [
-            'invoice_number', 'subtotal', 'tax_amount', 'total_amount', 'amount_paid',
-            'change_returned', 'created_at', 'updated_at', 'created_by'
+            'invoice_number', 'subtotal', 'tax_amount', 'discount', 'total_amount',
+            'amount_paid', 'change_returned', 'points_earned', 'points_redeemed',
+            'created_at', 'updated_at', 'created_by'
         ]
 
     def get_change_returned(self, obj):
