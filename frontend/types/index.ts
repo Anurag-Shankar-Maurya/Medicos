@@ -89,10 +89,24 @@ export interface Sale {
   customer_contact?: string;
   doctor_name?: string;
   doctor_registration?: string;
-  sale_date: string;
+  prescription_number?: string;
+  prescription_image?: string;
+  subtotal: string;
+  tax_amount: string;
+  discount: string;
   total_amount: string;
-  payment_method: 'cash' | 'card' | 'upi';
-  items: SaleItem[];
+  payment_method: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'insurance';
+  amount_paid: string;
+  change_returned: string;
+  points_earned: number;
+  points_redeemed: number;
+  notes?: string;
+  sale_date: string;
+  created_at: string;
+  updated_at: string;
+  created_by: number | null;
+  created_by_name: string | null;
+  items: any[]; // SaleItemSerializer
 }
 
 // Stats for Dashboard

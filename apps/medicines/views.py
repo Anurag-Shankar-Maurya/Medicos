@@ -65,6 +65,8 @@ class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     permission_classes = [IsAuthenticated]
+    ordering_fields = ['sale_date', 'total_amount', 'customer_name', 'created_at']
+    ordering = ['-sale_date']
 
     def get_queryset(self):
         queryset = Sale.objects.select_related('created_by').prefetch_related('items__medicine')
