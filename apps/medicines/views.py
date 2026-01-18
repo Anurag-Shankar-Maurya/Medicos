@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q, F, Sum, Count, Avg
+from django.db.models import Q, F, Sum, Count, Avg, Case, When, Value, DecimalField
 from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
@@ -23,7 +23,13 @@ class MedicineViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Medicine.objects.select_related('created_by')
+        queryset = Medicine.objects.select_related('created_by').annotate(
+            calculated_profit_margin=Case(
+                When(purchase_price__gt=0, then=((F('selling_price') - F('purchase_price')) / F('purchase_price') * 100)),
+                default=Value(0.00),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        )
         search = self.request.query_params.get('search', None)
         medicine_type = self.request.query_params.get('medicine_type', None)
         manufacturer = self.request.query_params.get('manufacturer', None)
@@ -77,7 +83,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
             'manufacturer', '-manufacturer',
             'quantity_in_stock', '-quantity_in_stock',
             'selling_price', '-selling_price',
-            'profit_margin', '-profit_margin',
+            'calculated_profit_margin', '-calculated_profit_margin',
             'created_at', '-created_at',
             'updated_at', '-updated_at'
         ]

@@ -198,8 +198,8 @@ export const MedicineList = () => {
                   <option value="-quantity_in_stock">Stock (High-Low)</option>
                   <option value="selling_price">Price (Low-High)</option>
                   <option value="-selling_price">Price (High-Low)</option>
-                  <option value="profit_margin">Profit % (Low-High)</option>
-                  <option value="-profit_margin">Profit % (High-Low)</option>
+                  <option value="calculated_profit_margin">Profit % (Low-High)</option>
+                  <option value="-calculated_profit_margin">Profit % (High-Low)</option>
                   <option value="created_at">Date Added (Old-New)</option>
                   <option value="-created_at">Date Added (New-Old)</option>
                 </select>
@@ -306,12 +306,12 @@ export const MedicineList = () => {
                 </th>
                 <th
                   className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none"
-                  onClick={() => setSortBy(sortBy === 'profit_margin' ? '-profit_margin' : 'profit_margin')}
+                  onClick={() => setSortBy(sortBy === 'calculated_profit_margin' ? '-calculated_profit_margin' : 'calculated_profit_margin')}
                 >
                   <div className="flex items-center gap-1">
                     Profit %
-                    {sortBy === 'profit_margin' && <ChevronDown size={14} className="rotate-0" />}
-                    {sortBy === '-profit_margin' && <ChevronDown size={14} className="rotate-180" />}
+                    {sortBy === 'calculated_profit_margin' && <ChevronDown size={14} className="rotate-0" />}
+                    {sortBy === '-calculated_profit_margin' && <ChevronDown size={14} className="rotate-180" />}
                   </div>
                 </th>
                 <th className="px-6 py-4 text-center">Quick Add</th>
