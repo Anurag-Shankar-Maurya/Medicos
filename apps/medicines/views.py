@@ -70,12 +70,20 @@ class SaleViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Sale.objects.select_related('created_by').prefetch_related('items__medicine')
+        search = self.request.query_params.get('search', None)
         customer = self.request.query_params.get('customer', None)
         doctor = self.request.query_params.get('doctor', None)
         payment_method = self.request.query_params.get('payment_method', None)
         start_date = self.request.query_params.get('start_date', None)
         end_date = self.request.query_params.get('end_date', None)
 
+        if search:
+            queryset = queryset.filter(
+                Q(invoice_number__icontains=search) |
+                Q(customer_name__icontains=search) |
+                Q(doctor_name__icontains=search) |
+                Q(customer_contact__icontains=search)
+            )
         if customer:
             queryset = queryset.filter(customer_name__icontains=customer)
         if doctor:
