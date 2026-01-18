@@ -338,7 +338,11 @@ export const MedicineList = () => {
                     </td>
                   </tr>
               ) : medicines.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <tr
+                  key={item.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                  onClick={() => handleOpenDetail(item)}
+                >
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900 dark:text-white">{item.name}</div>
                     <div className="text-xs text-slate-500">{item.generic_name}</div>
@@ -376,7 +380,10 @@ export const MedicineList = () => {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button
-                      onClick={() => addToCart(item)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(item);
+                      }}
                       disabled={item.quantity_in_stock <= 0}
                       className="p-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Add to Billing Cart"
@@ -386,7 +393,7 @@ export const MedicineList = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="relative inline-block text-left">
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveMenu(activeMenu === item.id ? null : item.id);
@@ -400,21 +407,30 @@ export const MedicineList = () => {
                         <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-50 overflow-hidden border border-slate-200 dark:border-slate-700">
                           <div className="py-1" role="menu">
                             <button
-                              onClick={() => handleOpenDetail(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDetail(item);
+                              }}
                               className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                               role="menuitem"
                             >
                               <Eye size={16} className="mr-3 text-slate-400" /> View Details
                             </button>
                             <button
-                              onClick={() => handleOpenEdit(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(item);
+                              }}
                               className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                               role="menuitem"
                             >
                               <Edit2 size={16} className="mr-3 text-slate-400" /> Edit Medicine
                             </button>
                             <button
-                              onClick={() => handleOpenDelete(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDelete(item);
+                              }}
                               className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                               role="menuitem"
                             >
