@@ -339,9 +339,9 @@ const ReportsPage: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* Report Navigation */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-3">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
               <div className="p-6 border-b border-gray-200 dark:border-slate-700">
                 <div className="relative">
@@ -389,7 +389,7 @@ const ReportsPage: React.FC = () => {
           </div>
 
           {/* Report Content */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-7">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
               <div className="p-6 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
