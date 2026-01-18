@@ -109,6 +109,25 @@ export interface Sale {
   items: any[]; // SaleItemSerializer
 }
 
+// Notifications
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  notification_type: 'low_stock' | 'out_of_stock' | 'expiring_soon' | 'expired' | 'new_sale' | 'system';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  medicine?: number;
+  medicine_name?: string;
+  sale?: number;
+  sale_invoice?: string;
+  user: number;
+  is_read: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  read_at?: string;
+}
+
 // Stats for Dashboard
 export interface DashboardStats {
   totalSales: number;

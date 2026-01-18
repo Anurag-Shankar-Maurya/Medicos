@@ -9,8 +9,8 @@ from datetime import timedelta
 import uuid
 from decimal import Decimal
 
-from .models import Medicine, Sale, SaleItem, Cart, CartItem
-from .serializers import MedicineSerializer, SaleSerializer, SaleItemSerializer, CartSerializer, CartItemSerializer
+from .models import Medicine, Sale, SaleItem, Cart, CartItem, Notification
+from .serializers import MedicineSerializer, SaleSerializer, SaleItemSerializer, CartSerializer, CartItemSerializer, NotificationSerializer
 
 # ==========================================
 # VIEWSETS (CRUD OPERATIONS)
@@ -194,6 +194,22 @@ class SaleViewSet(viewsets.ModelViewSet):
             sale.amount_paid = final_total
         sale.save()
 
+        # Create notification for new sale
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        # Notify all admin and manager users about the new sale
+        admin_users = User.objects.filter(role__in=['admin', 'manager'], is_active=True)
+        for user in admin_users:
+            Notification.objects.create(
+                title="New Sale Created",
+                message=f"Sale #{sale.invoice_number} created for ₹{sale.total_amount} by {request.user.get_full_name()}",
+                notification_type='new_sale',
+                priority='low',
+                sale=sale,
+                user=user
+            )
+
         return Response(self.get_serializer(sale).data, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer):
@@ -327,6 +343,49 @@ class CartViewSet(viewsets.ModelViewSet):
         cart.items.all().delete()
         serializer = self.get_serializer(cart)
         return Response(serializer.data)
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    """ViewSet for notifications"""
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(
+            user=self.request.user,
+            is_active=True
+        ).select_related('medicine', 'sale').order_by('-created_at')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        """Mark a notification as read"""
+        notification = self.get_object()
+        notification.is_read = True
+        notification.read_at = timezone.now()
+        notification.save()
+        serializer = self.get_serializer(notification)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        """Mark all notifications as read for the user"""
+        self.get_queryset().filter(is_read=False).update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+        return Response({"message": "All notifications marked as read"})
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get count of unread notifications"""
+        count = self.get_queryset().filter(is_read=False).count()
+        return Response({"unread_count": count})
 
 
 # ==========================================

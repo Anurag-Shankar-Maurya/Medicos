@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Medicine, Sale, SaleItem, Cart, CartItem
+from .models import Medicine, Sale, SaleItem, Cart, CartItem, Notification
 
 class MedicineSerializer(serializers.ModelSerializer):
     """Serializer for medicines"""
@@ -129,3 +129,19 @@ class CartSerializer(serializers.ModelSerializer):
 
     def get_total_amount(self, obj):
         return obj.total_amount
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """Serializer for notifications"""
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    sale_invoice = serializers.CharField(source='sale.invoice_number', read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'title', 'message', 'notification_type', 'priority',
+            'medicine', 'medicine_name', 'sale', 'sale_invoice',
+            'user', 'is_read', 'is_active', 'created_at',
+            'updated_at', 'read_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'read_at']

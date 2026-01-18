@@ -252,3 +252,58 @@ class CartItem(models.Model):
     @property
     def total_price(self):
         return self.medicine.selling_price * self.quantity
+
+
+class Notification(models.Model):
+    """System notifications for users"""
+    NOTIFICATION_TYPES = [
+        ('low_stock', 'Low Stock Alert'),
+        ('out_of_stock', 'Out of Stock Alert'),
+        ('expiring_soon', 'Medicine Expiring Soon'),
+        ('expired', 'Medicine Expired'),
+        ('new_sale', 'New Sale'),
+        ('system', 'System Notification'),
+    ]
+
+    PRIORITY_LEVELS = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
+
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='medium')
+
+    # Related objects (optional)
+    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, null=True, blank=True)
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, null=True, blank=True)
+
+    # User targeting
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+
+    # Status
+    is_read = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.user.get_full_name()}"
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['notification_type']),
+            models.Index(fields=['is_active']),
+        ]

@@ -1,14 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Search, Moon, Sun, Monitor, ShoppingCart } from 'lucide-react';
 import { useTheme, useAuth } from '../../app/providers';
 import { useCart } from '../../app/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { NotificationDropdown } from './NotificationDropdown';
+import { apiClient } from '../../services/apiClient';
 
 export const Header = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+      // Set up polling for unread count every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await apiClient.get<{ unread_count: number }>('/medicines/notifications/unread_count/');
+      setUnreadCount(response.unread_count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
 
   const toggleTheme = () => {
     if (theme === 'light') setTheme('dark');
@@ -61,10 +83,24 @@ export const Header = () => {
           )}
         </button>
 
-        <button className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg relative transition-colors">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900"></span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg relative transition-colors"
+            title="Notifications"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          <NotificationDropdown
+            isOpen={showNotifications}
+            onClose={() => setShowNotifications(false)}
+          />
+        </div>
 
         <div className="flex items-center ml-2">
             <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-700 dark:text-primary-200 font-medium text-sm">
