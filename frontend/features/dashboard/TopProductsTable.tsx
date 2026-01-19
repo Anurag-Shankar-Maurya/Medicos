@@ -25,7 +25,7 @@ export const TopProductsTable: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Top Selling Products</h3>
         <div className="flex items-center justify-center h-64">
           <Spinner size="lg" />
@@ -35,7 +35,7 @@ export const TopProductsTable: React.FC = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
       <div className="flex items-center space-x-2 mb-6">
         <TrendingUp size={20} className="text-green-600" />
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Top Selling Products</h3>

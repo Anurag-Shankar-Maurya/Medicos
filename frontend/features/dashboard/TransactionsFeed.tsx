@@ -25,7 +25,7 @@ export const TransactionsFeed: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Recent Transactions</h3>
         <div className="flex items-center justify-center h-64">
           <Spinner size="lg" />
@@ -35,7 +35,7 @@ export const TransactionsFeed: React.FC = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Recent Transactions</h3>
 
       <div className="space-y-4 max-h-80 overflow-y-auto">

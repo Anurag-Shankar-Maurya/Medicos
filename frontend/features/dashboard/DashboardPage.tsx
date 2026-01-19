@@ -159,12 +159,12 @@ export const DashboardPage = () => {
       {/* Primary Analytics Section */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Sales Trend Chart - Takes up 2 columns */}
-        <div className="xl:col-span-2 min-h-[400px]">
+        <div className="xl:col-span-2">
           <SalesTrendChart data={chartData} />
         </div>
         
         {/* Payment Methods - Takes up 1 column */}
-        <div className="min-h-[400px]">
+        <div className="xl:col-span-1">
            <PaymentMethodPieChart data={stats.payment_analytics} />
         </div>
       </div>
@@ -176,7 +176,7 @@ export const DashboardPage = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="w-full">
+      <div className="grid grid-cols-1 gap-6">
         <TransactionsFeed />
       </div>
     </div>

@@ -70,13 +70,13 @@ export const InventoryHealthChart: React.FC<InventoryHealthChartProps> = ({ inve
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
       <div className="flex items-center space-x-2 mb-6">
         <Package size={20} className="text-blue-600" />
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Inventory Health</h3>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Inventory Status Chart */}
         <div className="space-y-4">
           <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">Stock Status</h4>
@@ -125,35 +125,35 @@ export const InventoryHealthChart: React.FC<InventoryHealthChartProps> = ({ inve
       </div>
 
       {/* Key Metrics */}
-      <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="text-center">
-          <div className="flex items-center justify-center space-x-1 text-2xl font-bold text-slate-900 dark:text-white">
+      <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+          <div className="flex items-center space-x-1 text-xl font-bold text-slate-900 dark:text-white">
             <TrendingUp size={16} className="text-green-600" />
             <span>{inventorySummary.averageProfitMargin.toFixed(1)}%</span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Avg Margin</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Avg Margin</p>
         </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            ${inventorySummary.inventoryCostValue.toLocaleString()}
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+            ${(inventorySummary.inventoryCostValue / 1000).toFixed(1)}k
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Total Cost</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Total Cost</p>
         </div>
 
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            ${inventorySummary.estimatedPotentialProfit.toLocaleString()}
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+            ${(inventorySummary.estimatedPotentialProfit / 1000).toFixed(1)}k
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Est. Profit</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Est. Profit</p>
         </div>
 
-        <div className="text-center">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center justify-center space-x-1">
-            <AlertTriangle size={16} className="text-red-600" />
-            <span className="text-xl font-bold text-red-600">{inventorySummary.expiringSoonCount}</span>
+            <AlertTriangle size={16} className="text-amber-600" />
+            <span className="text-xl font-bold text-amber-600">{inventorySummary.expiringSoonCount}</span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Expiring Soon</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Expiring Soon</p>
         </div>
       </div>
     </div>
