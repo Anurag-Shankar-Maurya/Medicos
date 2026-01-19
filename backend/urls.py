@@ -20,7 +20,7 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from apps.medicines.dashboard_views import dashboard_stats, sales_chart_data
+from apps.medicines.dashboard_views import dashboard_stats, sales_chart_data, top_selling_products, recent_transactions
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -40,6 +40,8 @@ urlpatterns = [
     path('api/medicines/', include('apps.medicines.urls')),
     path('api/dashboard/stats/', dashboard_stats, name='dashboard-stats'),
     path('api/dashboard/sales-chart/', sales_chart_data, name='sales-chart-data'),
+    path('api/dashboard/top-selling-products/', top_selling_products, name='top-selling-products'),
+    path('api/dashboard/recent-transactions/', recent_transactions, name='recent-transactions'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     # your other urls...

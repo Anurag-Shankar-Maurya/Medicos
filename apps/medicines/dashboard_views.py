@@ -128,14 +128,14 @@ def top_selling_products(request):
 @permission_classes([IsAuthenticated])
 def recent_transactions(request):
     """Get last 5 transactions for a feed widget"""
-    recent_sales = Sale.objects.select_related('customer').all().order_by('-sale_date')[:5]
+    recent_sales = Sale.objects.all().order_by('-sale_date')[:5]
     
     data = []
     for sale in recent_sales:
         data.append({
             "id": sale.id,
             "invoice": sale.invoice_number,
-            "customer": sale.customer.name if sale.customer else "Walk-in Customer",
+            "customer": sale.customer_name or "Walk-in Customer",
             "amount": float(sale.total_amount),
             "time": sale.sale_date.strftime("%H:%M"),
             "status": "Paid" if sale.amount_paid >= sale.total_amount else "Partial/Unpaid"
