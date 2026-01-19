@@ -70,7 +70,7 @@ export const InventoryHealthChart: React.FC<InventoryHealthChartProps> = ({ inve
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-full">
       <div className="flex items-center space-x-2 mb-6">
         <Package size={20} className="text-blue-600" />
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Inventory Health</h3>
