@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Medicine } from '../types';
 import { useToast } from '../components/common/Toast';
 import { apiClient } from '../services/apiClient';
+import { useAuth } from './providers';
 
 export interface CartItem {
   id: number;
@@ -40,8 +41,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const { addToast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   const refreshCart = async () => {
+    if (!isAuthenticated) {
+      setCart(null);
+      return;
+    }
+
     try {
       setLoading(true);
       const cartData = await apiClient.get<Cart>('/medicines/cart/');
@@ -57,9 +64,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     refreshCart();
-  }, []);
+  }, [isAuthenticated]);
 
   const addToCart = async (medicine: Medicine, quantity: number = 1) => {
+    if (!isAuthenticated) {
+      addToast('Please login to add items to cart', "error");
+      return;
+    }
+
     if (medicine.quantity_in_stock <= 0) {
       addToast(`${medicine.name} is out of stock!`, "error");
       return;
@@ -82,6 +94,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromCart = async (cartItemId: number) => {
+    if (!isAuthenticated) {
+      addToast('Please login to modify cart', "error");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.post<Cart>('/medicines/cart/remove_item/', {
@@ -98,6 +115,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateQuantity = async (cartItemId: number, quantity: number) => {
+    if (!isAuthenticated) {
+      addToast('Please login to modify cart', "error");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.post<Cart>('/medicines/cart/update_item/', {
@@ -115,6 +137,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = async () => {
+    if (!isAuthenticated) {
+      addToast('Please login to clear cart', "error");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.post<Cart>('/medicines/cart/clear_cart/', {});
