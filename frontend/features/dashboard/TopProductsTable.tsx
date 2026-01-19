@@ -86,14 +86,6 @@ export const TopProductsTable: React.FC = () => {
           </div>
         )}
       </div>
-
-      {products.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-            View detailed reports →
-          </button>
-        </div>
-      )}
     </div>
   );
 };

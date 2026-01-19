@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, DollarSign, User, Receipt } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { RecentTransaction } from '../../types';
 import { Spinner } from '../../components/common/Spinner';
 
 export const TransactionsFeed: React.FC = () => {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<RecentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,7 +93,7 @@ export const TransactionsFeed: React.FC = () => {
 
       {transactions.length > 0 && (
         <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+          <button onClick={() => navigate('/sales')} className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
             View all transactions →
           </button>
         </div>
