@@ -1,26 +1,68 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Pill, 
-  ShoppingCart, 
-  Users, 
-  FileText, 
-  Settings, 
+import React, { useState, useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Pill,
+  ShoppingCart,
+  Users,
+  FileText,
+  Settings,
   LogOut,
   Activity,
-  X
+  X,
+  Bell,
+  Moon,
+  Sun,
+  Monitor
 } from 'lucide-react';
-import { useAuth } from '../../app/providers';
+import { useAuth, useTheme } from '../../app/providers';
 import { useCart } from '../../app/CartContext';
+import { NotificationDropdown } from './NotificationDropdown';
+import { apiClient } from '../../services/apiClient';
 
 interface SidebarProps {
   onClose?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { cartCount } = useCart();
+  const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+      // Set up polling for unread count every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await apiClient.get<{ unread_count: number }>('/medicines/notifications/unread_count/');
+      setUnreadCount(response.unread_count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  const toggleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
+  };
+
+  const getThemeIcon = () => {
+    switch(theme) {
+      case 'dark': return <Moon size={20} />;
+      case 'light': return <Sun size={20} />;
+      default: return <Monitor size={20} />;
+    }
+  };
 
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
@@ -72,8 +114,68 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         ))}
       </nav>
 
+      <div className="px-3 py-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors w-full text-left"
+            title={`Theme: ${theme}`}
+          >
+            {getThemeIcon()}
+            <span className="ml-3">Theme</span>
+          </button>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                navigate('/cart');
+                onClose?.();
+              }}
+              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg relative transition-colors"
+              title="Shopping Cart"
+            >
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="flex items-center p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative"
+                title="Notifications"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              <NotificationDropdown
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center px-3 py-2">
+          <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-700 dark:text-primary-200 font-medium text-sm mr-3">
+            {user?.first_name?.[0] || user?.username?.[0] || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{user?.first_name || 'User'} {user?.last_name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 capitalize truncate">{user?.role || 'Pharmacist'}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-        <button 
+        <button
            onClick={() => {
              logout();
              onClose?.();
