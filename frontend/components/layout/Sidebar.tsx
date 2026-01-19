@@ -8,12 +8,17 @@ import {
   FileText, 
   Settings, 
   LogOut,
-  Activity
+  Activity,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../app/providers';
 import { useCart } from '../../app/CartContext';
 
-export const Sidebar = () => {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { logout } = useAuth();
   const { cartCount } = useCart();
 
@@ -27,12 +32,20 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-200 z-20">
-      <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div className="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center mr-3">
-          <span className="text-white font-bold text-lg">M</span>
+    <>
+      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center">
+          <div className="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center mr-3">
+            <span className="text-white font-bold text-lg">M</span>
+          </div>
+          <span className="text-xl font-bold text-slate-900 dark:text-white">Medicos</span>
         </div>
-        <span className="text-xl font-bold text-slate-900 dark:text-white">Medicos</span>
+        <button
+          onClick={onClose}
+          className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg lg:hidden"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
@@ -40,6 +53,7 @@ export const Sidebar = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onClose}
             className={({ isActive }) => `
               flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
               ${isActive 
@@ -60,13 +74,16 @@ export const Sidebar = () => {
 
       <div className="p-4 border-t border-slate-200 dark:border-slate-800">
         <button 
-           onClick={logout}
+           onClick={() => {
+             logout();
+             onClose?.();
+           }}
            className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
         >
           <LogOut size={20} className="mr-3" />
           Sign Out
         </button>
       </div>
-    </aside>
+    </>
   );
 };

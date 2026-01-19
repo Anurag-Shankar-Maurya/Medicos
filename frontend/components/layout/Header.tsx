@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Search, Moon, Sun, Monitor, ShoppingCart, X, Pill, Receipt } from 'lucide-react';
+import { Bell, Search, Moon, Sun, Monitor, ShoppingCart, X, Pill, Receipt, Menu } from 'lucide-react';
 import { useTheme, useAuth } from '../../app/providers';
 import { useCart } from '../../app/CartContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,11 @@ interface SearchResult {
   path: string;
 }
 
-export const Header = () => {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const { cartCount } = useCart();
@@ -164,9 +168,17 @@ export const Header = () => {
   }, []);
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 transition-colors duration-200 sticky top-0 z-10">
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6 transition-colors duration-200 sticky top-0 z-10">
       <div className="flex items-center flex-1">
-        <div ref={searchRef} className="relative w-96 max-w-full hidden md:block">
+        {/* Mobile menu button */}
+        <button
+          onClick={onMenuClick}
+          className="p-2 mr-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg lg:hidden"
+        >
+          <Menu size={20} />
+        </button>
+
+        <div ref={searchRef} className="relative w-full max-w-md lg:max-w-none lg:w-96 hidden sm:block">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-slate-400" />
           </div>
@@ -229,7 +241,7 @@ export const Header = () => {
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 lg:space-x-4">
         <button
           onClick={toggleTheme}
           className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -274,7 +286,7 @@ export const Header = () => {
             <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-700 dark:text-primary-200 font-medium text-sm">
                 {user?.first_name?.[0] || user?.username?.[0] || 'U'}
             </div>
-            <div className="ml-3 hidden md:block">
+            <div className="ml-3 hidden lg:block">
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{user?.first_name || 'User'} {user?.last_name}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{user?.role || 'Pharmacist'}</p>
             </div>
