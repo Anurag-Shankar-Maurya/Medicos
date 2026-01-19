@@ -19,6 +19,7 @@ import { useAuth, useTheme } from '../../app/providers';
 import { useCart } from '../../app/CartContext';
 import { NotificationDropdown } from './NotificationDropdown';
 import { apiClient } from '../../services/apiClient';
+import logo from '../../logo.svg';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -77,9 +78,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     <>
       <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center">
-          <div className="h-8 w-8 bg-primary-600 rounded-lg flex items-center justify-center mr-3">
-            <span className="text-white font-bold text-lg">M</span>
-          </div>
+          <img
+            src={logo}
+            alt="Medicos Logo"
+            className="h-8 w-8 mr-3"
+          />
           <span className="text-xl font-bold text-slate-900 dark:text-white">Medicos</span>
         </div>
         <button
