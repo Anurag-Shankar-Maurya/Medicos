@@ -57,10 +57,10 @@ export const MedicineDetailModal: React.FC<MedicineDetailModalProps> = ({ isOpen
                  <DollarSign size={16} className="mr-2" /> Pricing Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <DetailRow label="Purchase Price" value={`$${medicine.purchase_price}`} icon={<DollarSign size={18} />} />
-                 <DetailRow label="Selling Price" value={`$${medicine.selling_price}`} icon={<DollarSign size={18} />} />
-                 <DetailRow label="MRP" value={`$${medicine.mrp}`} icon={<DollarSign size={18} />} />
-                 <DetailRow label="Wholesale Price" value={`$${medicine.wholesale_price}`} icon={<DollarSign size={18} />} />
+                 <DetailRow label="Purchase Price" value={`₹${medicine.purchase_price}`} icon={<DollarSign size={18} />} />
+                 <DetailRow label="Selling Price" value={`₹${medicine.selling_price}`} icon={<DollarSign size={18} />} />
+                 <DetailRow label="MRP" value={`₹${medicine.mrp}`} icon={<DollarSign size={18} />} />
+                 <DetailRow label="Wholesale Price" value={`₹${medicine.wholesale_price}`} icon={<DollarSign size={18} />} />
                  <DetailRow label="GST Rate" value={`${medicine.gst_percentage}%`} icon={<TrendingUp size={18} />} />
                  <DetailRow label="Profit Margin" value={`${medicine.profit_margin.toFixed(2)}%`} icon={<TrendingUp size={18} />} />
               </div>

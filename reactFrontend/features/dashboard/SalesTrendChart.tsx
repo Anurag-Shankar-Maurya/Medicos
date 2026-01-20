@@ -24,7 +24,7 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ data }) => {
           <p className="font-semibold text-slate-800 dark:text-slate-200 mb-2">{label}</p>
           <div className="space-y-1">
             <p className="text-sm text-blue-600 dark:text-blue-400">
-              Sales: <span className="font-bold">${payload[0].value.toLocaleString()}</span>
+              Sales: <span className="font-bold">₹{payload[0].value.toLocaleString()}</span>
             </p>
             <p className="text-sm text-purple-600 dark:text-purple-400">
               Orders: <span className="font-bold">{payload[1].value}</span>
@@ -76,13 +76,13 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ data }) => {
               tick={{ fill: '#64748b', fontSize: 12 }} 
               dy={10}
             />
-            <YAxis 
-              yAxisId="left" 
-              orientation="left" 
-              axisLine={false} 
-              tickLine={false} 
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              axisLine={false}
+              tickLine={false}
               tick={{ fill: '#64748b', fontSize: 12 }}
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => `₹${value}`}
             />
             <YAxis 
               yAxisId="right" 

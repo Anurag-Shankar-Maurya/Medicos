@@ -61,7 +61,7 @@ export const InventoryHealthChart: React.FC<InventoryHealthChartProps> = ({ inve
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-lg">
           <p className="text-white font-medium">{label}</p>
           <p className="text-slate-300">
-            Value: <span className="text-white font-semibold">${payload[0].value.toLocaleString()}</span>
+            Value: <span className="text-white font-semibold">₹{payload[0].value.toLocaleString()}</span>
           </p>
         </div>
       );
@@ -136,14 +136,14 @@ export const InventoryHealthChart: React.FC<InventoryHealthChartProps> = ({ inve
 
         <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
           <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-            ${(inventorySummary.inventoryCostValue / 1000).toFixed(1)}k
+            ₹{(inventorySummary.inventoryCostValue / 1000).toFixed(1)}k
           </div>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Total Cost</p>
         </div>
 
         <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
           <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-            ${(inventorySummary.estimatedPotentialProfit / 1000).toFixed(1)}k
+            ₹{(inventorySummary.estimatedPotentialProfit / 1000).toFixed(1)}k
           </div>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Est. Profit</p>
         </div>

@@ -127,7 +127,7 @@ export const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           title="Today's Revenue"
-          value={`$${stats.sales_summary.todaysRevenue.toLocaleString()}`}
+          value={`₹${stats.sales_summary.todaysRevenue.toLocaleString()}`}
           subtitle={`${stats.sales_summary.todaysTransactions} transactions`}
           icon={<DollarSign />}
           color="bg-emerald-500 text-emerald-600"
@@ -135,7 +135,7 @@ export const DashboardPage = () => {
         />
         <StatCard
           title="Avg. Order Value"
-          value={`$${stats.sales_summary.averageOrderValue.toFixed(2)}`}
+          value={`₹${stats.sales_summary.averageOrderValue.toFixed(2)}`}
           subtitle="Per transaction"
           icon={<ShoppingCart />}
           color="bg-blue-500 text-blue-600"
@@ -149,8 +149,8 @@ export const DashboardPage = () => {
         />
         <StatCard
           title="Inventory Value"
-          value={`$${(stats.inventory_summary.inventoryCostValue / 1000).toFixed(1)}k`}
-          subtitle={`$${(stats.inventory_summary.estimatedPotentialProfit / 1000).toFixed(1)}k pot. profit`}
+          value={`₹${(stats.inventory_summary.inventoryCostValue / 1000).toFixed(1)}k`}
+          subtitle={`₹${(stats.inventory_summary.estimatedPotentialProfit / 1000).toFixed(1)}k pot. profit`}
           icon={<TrendingUp />}
           color="bg-violet-500 text-violet-600"
         />

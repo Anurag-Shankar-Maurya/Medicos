@@ -370,8 +370,8 @@ export const MedicineList = () => {
                     <div className="text-xs text-slate-400">Loc: {item.rack_number}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-slate-900 dark:text-white font-medium">${item.selling_price}</div>
-                    <div className="text-xs text-slate-500 line-through">${item.mrp}</div>
+                    <div className="text-slate-900 dark:text-white font-medium">₹{item.selling_price}</div>
+                    <div className="text-xs text-slate-500 line-through">₹{item.mrp}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`font-medium ${item.profit_margin > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>

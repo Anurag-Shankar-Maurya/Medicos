@@ -137,7 +137,7 @@ export const BillingPage = () => {
                       <div className="text-xs font-semibold text-primary-600 mt-1">Stock: {m.quantity_in_stock}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-slate-900 dark:text-white">${m.selling_price}</div>
+                      <div className="font-bold text-slate-900 dark:text-white">₹{m.selling_price}</div>
                       <Button size="sm" variant="outline" className="mt-2 h-8 px-3">Add</Button>
                     </div>
                   </button>
@@ -190,7 +190,7 @@ export const BillingPage = () => {
                     <tr key={item.id} className="group">
                       <td className="py-4 px-2">
                         <div className="font-semibold text-slate-900 dark:text-white">{item.medicine_name}</div>
-                        <div className="text-xs text-slate-500">${item.medicine_price} / unit</div>
+                        <div className="text-xs text-slate-500">₹{item.medicine_price} / unit</div>
                       </td>
                       <td className="py-4 px-2">
                         <div className="flex items-center justify-center space-x-2">
@@ -210,10 +210,10 @@ export const BillingPage = () => {
                         </div>
                       </td>
                       <td className="py-4 px-2 text-right text-slate-600 dark:text-slate-400">
-                        ${item.medicine_price}
+                        ₹{item.medicine_price}
                       </td>
                       <td className="py-4 px-2 text-right font-bold text-slate-900 dark:text-white">
-                        ${item.total_price}
+                        ₹{item.total_price}
                       </td>
                       <td className="py-4 text-right">
                         <button
@@ -283,15 +283,15 @@ export const BillingPage = () => {
           <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
             <div className="flex justify-between text-slate-500">
               <span>Subtotal</span>
-              <span className="font-medium text-slate-900 dark:text-white">${calculateSubtotal().toFixed(2)}</span>
+              <span className="font-medium text-slate-900 dark:text-white">₹{calculateSubtotal().toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-slate-500">
               <span>GST (12%)</span>
-              <span className="font-medium text-slate-900 dark:text-white">${calculateTax().toFixed(2)}</span>
+              <span className="font-medium text-slate-900 dark:text-white">₹{calculateTax().toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-end pt-2">
               <span className="font-bold text-slate-900 dark:text-white text-lg">Total Amount</span>
-              <span className="font-black text-primary-600 text-3xl">${calculateTotal().toFixed(2)}</span>
+              <span className="font-black text-primary-600 text-3xl">₹{calculateTotal().toFixed(2)}</span>
             </div>
           </div>
 

@@ -141,7 +141,7 @@ export const SaleDetailPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Amount</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">${sale.total_amount}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">₹{sale.total_amount}</p>
             </div>
             <DollarSign size={24} className="text-slate-400" />
           </div>
@@ -266,12 +266,12 @@ export const SaleDetailPage = () => {
                   </td>
                   <td className="py-4 px-6 text-right">
                     <span className="font-medium text-slate-900 dark:text-white">
-                      ${parseFloat(item.selling_price).toFixed(2)}
+                      ₹{parseFloat(item.selling_price).toFixed(2)}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-right">
                     <span className="font-medium text-slate-900 dark:text-white">
-                      ${parseFloat(item.tax_amount).toFixed(2)}
+                      ₹{parseFloat(item.tax_amount).toFixed(2)}
                     </span>
                     <div className="text-xs text-slate-500">
                       ({item.gst_percentage}%)
@@ -279,7 +279,7 @@ export const SaleDetailPage = () => {
                   </td>
                   <td className="py-4 px-6 text-right">
                     <span className="font-bold text-slate-900 dark:text-white">
-                      ${parseFloat(item.total).toFixed(2)}
+                      ₹{parseFloat(item.total).toFixed(2)}
                     </span>
                   </td>
                 </tr>
@@ -293,19 +293,19 @@ export const SaleDetailPage = () => {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400">Subtotal:</span>
-              <span className="font-medium text-slate-900 dark:text-white">${parseFloat(sale.subtotal).toFixed(2)}</span>
+              <span className="font-medium text-slate-900 dark:text-white">₹{parseFloat(sale.subtotal).toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400">GST:</span>
-              <span className="font-medium text-slate-900 dark:text-white">${parseFloat(sale.tax_amount).toFixed(2)}</span>
+              <span className="font-medium text-slate-900 dark:text-white">₹{parseFloat(sale.tax_amount).toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-700 pt-3">
               <span className="text-slate-900 dark:text-white">Total Amount:</span>
-              <span className="text-slate-900 dark:text-white">${parseFloat(sale.total_amount).toFixed(2)}</span>
+              <span className="text-slate-900 dark:text-white">₹{parseFloat(sale.total_amount).toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400">Amount Paid:</span>
-              <span className="font-medium text-slate-900 dark:text-white">${parseFloat(sale.amount_paid).toFixed(2)}</span>
+              <span className="font-medium text-slate-900 dark:text-white">₹{parseFloat(sale.amount_paid).toFixed(2)}</span>
             </div>
           </div>
         </div>

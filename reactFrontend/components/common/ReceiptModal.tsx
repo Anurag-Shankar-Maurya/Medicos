@@ -126,10 +126,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ sale, isOpen, onClos
                     {item.quantity}
                   </div>
                   <div className="col-span-2 text-right text-slate-600 dark:text-slate-400">
-                    ${parseFloat(item.selling_price).toFixed(2)}
+                    ₹{parseFloat(item.selling_price).toFixed(2)}
                   </div>
                   <div className="col-span-2 text-right text-slate-900 dark:text-white font-medium">
-                    ${parseFloat(item.total).toFixed(2)}
+                    ₹{parseFloat(item.total).toFixed(2)}
                   </div>
                 </div>
               ))}
@@ -139,19 +139,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ sale, isOpen, onClos
             <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium text-slate-600 dark:text-slate-400">Subtotal:</span>
-                <span className="text-slate-900 dark:text-white">${parseFloat(sale.subtotal).toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-white">₹{parseFloat(sale.subtotal).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="font-medium text-slate-600 dark:text-slate-400">GST:</span>
-                <span className="text-slate-900 dark:text-white">${parseFloat(sale.tax_amount).toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-white">₹{parseFloat(sale.tax_amount).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t border-slate-200 dark:border-slate-700 pt-2">
                 <span className="text-slate-900 dark:text-white">Total:</span>
-                <span className="text-slate-900 dark:text-white">${parseFloat(sale.total_amount).toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-white">₹{parseFloat(sale.total_amount).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="font-medium text-slate-600 dark:text-slate-400">Amount Paid:</span>
-                <span className="text-slate-900 dark:text-white">${parseFloat(sale.amount_paid).toFixed(2)}</span>
+                <span className="text-slate-900 dark:text-white">₹{parseFloat(sale.amount_paid).toFixed(2)}</span>
               </div>
             </div>
 

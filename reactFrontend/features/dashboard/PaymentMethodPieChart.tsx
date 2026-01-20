@@ -46,7 +46,7 @@ export const PaymentMethodPieChart: React.FC<PaymentMethodPieChartProps> = ({ da
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-lg">
           <p className="text-white font-medium">{data.name}</p>
           <p className="text-slate-300">
-            Amount: <span className="text-white font-semibold">${data.value.toLocaleString()}</span>
+            Amount: <span className="text-white font-semibold">₹{data.value.toLocaleString()}</span>
           </p>
           <p className="text-slate-300">
             Transactions: <span className="text-white font-semibold">{data.count}</span>

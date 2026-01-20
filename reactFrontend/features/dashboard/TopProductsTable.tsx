@@ -74,7 +74,7 @@ export const TopProductsTable: React.FC = () => {
 
                 <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
                   <DollarSign size={14} />
-                  <span className="font-semibold">${product.total_revenue.toFixed(2)}</span>
+                  <span className="font-semibold">₹{product.total_revenue.toFixed(2)}</span>
                 </div>
               </div>
             </div>

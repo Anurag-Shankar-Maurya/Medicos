@@ -109,10 +109,10 @@ export const CartPage = () => {
                     </div>
                   </td>
                   <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white">
-                    ${item.medicine_price}
+                    ₹{item.medicine_price}
                   </td>
                   <td className="py-4 px-6 text-right font-bold text-slate-900 dark:text-white">
-                    ${item.total_price}
+                    ₹{item.total_price}
                   </td>
                   <td className="py-4 px-6 text-center">
                     <button
@@ -135,7 +135,7 @@ export const CartPage = () => {
             <div className="space-y-1">
               <div className="text-sm text-slate-500">Total Items: {cart.total_items}</div>
               <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                Total: ${cart.total_amount}
+                Total: ₹{cart.total_amount}
               </div>
             </div>
             <div className="space-x-3">

@@ -301,11 +301,11 @@ export const SalesPage = () => {
                         </td>
                         <td className="py-4 px-6">
                           <div className="font-semibold text-slate-900 dark:text-white">
-                            ${sale.total_amount}
+                            ₹{sale.total_amount}
                           </div>
                           {sale.discount > 0 && (
                             <div className="text-sm text-green-600">
-                              -${sale.discount} discount
+                              -₹{sale.discount} discount
                             </div>
                           )}
                         </td>
