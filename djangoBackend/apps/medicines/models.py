@@ -192,7 +192,8 @@ class Sale(models.Model):
 class SaleItem(models.Model):
     """Individual items in a sale"""
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
-    medicine = models.ForeignKey(Medicine, on_delete=models.PROTECT)
+    medicine = models.ForeignKey(Medicine, on_delete=models.SET_NULL, null=True, blank=True)
+    medicine_name = models.CharField(max_length=200, default="Unknown Medicine", help_text="Captured name at time of sale")
     
     quantity = models.IntegerField(validators=[MinValueValidator(1)])
     selling_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -207,9 +208,14 @@ class SaleItem(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.medicine.name} x {self.quantity}"
+        return f"{self.medicine_name} x {self.quantity}"
 
     def save(self, *args, **kwargs):
+        if self.medicine:
+            self.medicine_name = self.medicine.name
+        elif not self.medicine_name:
+            self.medicine_name = "Unknown Medicine"
+
         self.subtotal = self.selling_price * self.quantity
         self.discount_amount = (self.subtotal * self.discount_percentage) / 100
         taxable_amount = self.subtotal - self.discount_amount
@@ -278,8 +284,8 @@ class Notification(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='medium')
 
     # Related objects (optional)
-    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE, null=True, blank=True)
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, null=True, blank=True)
+    medicine = models.ForeignKey(Medicine, on_delete=models.SET_NULL, null=True, blank=True)
+    sale = models.ForeignKey(Sale, on_delete=models.SET_NULL, null=True, blank=True)
 
     # User targeting
     user = models.ForeignKey(
