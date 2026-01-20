@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Calendar, Eye, Download, Printer } from 'lucide-react';
+import { Search, Filter, Calendar, Eye, Download, Printer, FileText, FileSpreadsheet, ChevronDown, FileJson } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { PaginatedResponse, Sale } from '../../types';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Spinner } from '../../components/common/Spinner';
 import { ReceiptModal } from '../../components/common/ReceiptModal';
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -45,6 +46,8 @@ export const SalesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const fetchSales = async (page = 1) => {
     setLoading(true);
@@ -147,6 +150,292 @@ export const SalesPage = () => {
     }
   };
 
+  const exportToCSV = async () => {
+    setExportLoading(true);
+    try {
+      // Fetch all sales data for export (remove pagination limit)
+      const params: Record<string, string> = { page_size: '10000' }; // Large page size to get all data
+      if (search) params.customer = search;
+      if (paymentMethod) params.payment_method = paymentMethod;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const response = await apiClient.get<PaginatedResponse<Sale>>('/medicines/sales/', params);
+      const exportData = response.results;
+
+      // Create CSV content
+      const headers = [
+        'Invoice Number',
+        'Customer Name',
+        'Customer Contact',
+        'Doctor Name',
+        'Doctor Registration',
+        'Sale Date',
+        'Subtotal',
+        'Tax Amount',
+        'Discount',
+        'Total Amount',
+        'Payment Method',
+        'Amount Paid',
+        'Change Returned',
+        'Points Earned',
+        'Points Redeemed',
+        'Status'
+      ];
+
+      const csvContent = [
+        headers.join(','),
+        ...exportData.map(sale => {
+          const status = getStatus(sale);
+          return [
+            `"${sale.invoice_number}"`,
+            `"${sale.customer_name || 'Walk-in Customer'}"`,
+            `"${sale.customer_contact || ''}"`,
+            `"${sale.doctor_name || ''}"`,
+            `"${sale.doctor_registration || ''}"`,
+            `"${formatDate(sale.sale_date)}"`,
+            `"${sale.subtotal}"`,
+            `"${sale.tax_amount}"`,
+            `"${sale.discount}"`,
+            `"${sale.total_amount}"`,
+            `"${sale.payment_method}"`,
+            `"${sale.amount_paid}"`,
+            `"${sale.change_returned}"`,
+            `"${sale.points_earned}"`,
+            `"${sale.points_redeemed}"`,
+            `"${status.label}"`
+          ].join(',');
+        })
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `sales_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setShowExportMenu(false);
+    } catch (error: any) {
+      console.error('Failed to export CSV:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    setExportLoading(true);
+    try {
+      // For PDF export, we'll use the browser's print functionality
+      // First, create a printable version of the data
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to export PDF');
+        return;
+      }
+
+      // Fetch all sales data for export
+      const params: Record<string, string> = { page_size: '10000' };
+      if (search) params.customer = search;
+      if (paymentMethod) params.payment_method = paymentMethod;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const response = await apiClient.get<PaginatedResponse<Sale>>('/medicines/sales/', params);
+      const exportData = response.results;
+
+      // Calculate totals
+      const totalSales = exportData.length;
+      const totalAmount = exportData.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0);
+      const totalPaid = exportData.reduce((sum, sale) => sum + parseFloat(sale.amount_paid), 0);
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Sales Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+            .summary { background: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+            th { background: #f9fafb; font-weight: bold; }
+            .total-row { background: #fef3c7; font-weight: bold; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Sales Report</h1>
+          <div class="summary">
+            <h3>Report Summary</h3>
+            <p><strong>Total Sales:</strong> ${totalSales}</p>
+            <p><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</p>
+            <p><strong>Total Paid:</strong> ₹${totalPaid.toFixed(2)}</p>
+            <p><strong>Report Date:</strong> ${new Date().toLocaleDateString()}</p>
+            ${startDate || endDate ? `<p><strong>Date Range:</strong> ${startDate || 'Start'} to ${endDate || 'End'}</p>` : ''}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Total Amount</th>
+                <th>Payment Method</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${exportData.map(sale => {
+                const status = getStatus(sale);
+                return `
+                  <tr>
+                    <td>${sale.invoice_number}</td>
+                    <td>${sale.customer_name || 'Walk-in Customer'}</td>
+                    <td>${formatDate(sale.sale_date)}</td>
+                    <td>₹${sale.total_amount}</td>
+                    <td>${sale.payment_method.replace('_', ' ')}</td>
+                    <td>${status.label}</td>
+                  </tr>
+                `;
+              }).join('')}
+              <tr class="total-row">
+                <td colspan="3"><strong>Totals</strong></td>
+                <td><strong>₹${totalAmount.toFixed(2)}</strong></td>
+                <td colspan="2"></td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close();
+      };
+
+      setShowExportMenu(false);
+    } catch (error: any) {
+      console.error('Failed to export PDF:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportToJSON = async () => {
+    setExportLoading(true);
+    try {
+      // Fetch all sales data for export (remove pagination limit)
+      const params: Record<string, string> = { page_size: '10000' }; // Large page size to get all data
+      if (search) params.customer = search;
+      if (paymentMethod) params.payment_method = paymentMethod;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const response = await apiClient.get<PaginatedResponse<Sale>>('/medicines/sales/', params);
+      const exportData = response.results;
+
+      // Prepare export data with enhanced information
+      const exportObject = {
+        export_info: {
+          generated_at: new Date().toISOString(),
+          total_records: exportData.length,
+          filters_applied: {
+            customer_search: search || null,
+            payment_method: paymentMethod || null,
+            date_range: startDate || endDate ? {
+              start_date: startDate || null,
+              end_date: endDate || null
+            } : null
+          },
+          generated_by: 'Medicos Pharmacy Management System'
+        },
+        sales: exportData.map(sale => {
+          const status = getStatus(sale);
+          return {
+            id: sale.id,
+            invoice_number: sale.invoice_number,
+            customer: {
+              name: sale.customer_name || 'Walk-in Customer',
+              contact: sale.customer_contact || null
+            },
+            doctor: {
+              name: sale.doctor_name || null,
+              registration: sale.doctor_registration || null
+            },
+            prescription: {
+              number: sale.prescription_number || null,
+              image: sale.prescription_image || null
+            },
+            sale_date: sale.sale_date,
+            financials: {
+              subtotal: sale.subtotal,
+              tax_amount: sale.tax_amount,
+              discount: sale.discount,
+              total_amount: sale.total_amount,
+              amount_paid: sale.amount_paid,
+              change_returned: sale.change_returned,
+              points_earned: sale.points_earned,
+              points_redeemed: sale.points_redeemed
+            },
+            payment: {
+              method: sale.payment_method,
+              status: status.label
+            },
+            timestamps: {
+              created_at: sale.created_at,
+              updated_at: sale.updated_at
+            }
+          };
+        }),
+        summary: {
+          total_sales: exportData.length,
+          total_amount: exportData.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0),
+          total_paid: exportData.reduce((sum, sale) => sum + parseFloat(sale.amount_paid), 0),
+          total_discount: exportData.reduce((sum, sale) => sum + parseFloat(sale.discount), 0),
+          payment_methods_breakdown: exportData.reduce((acc, sale) => {
+            acc[sale.payment_method] = (acc[sale.payment_method] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+          status_breakdown: exportData.reduce((acc, sale) => {
+            const status = getStatus(sale);
+            acc[status.label] = (acc[status.label] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
+        }
+      };
+
+      // Create and download JSON file
+      const jsonContent = JSON.stringify(exportObject, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `sales_export_${new Date().toISOString().split('T')[0]}.json`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setShowExportMenu(false);
+    } catch (error: any) {
+      console.error('Failed to export JSON:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 h-[calc(100vh-140px)]">
       {/* Header */}
@@ -155,9 +444,48 @@ export const SalesPage = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Sales History</h1>
           <p className="text-slate-500 mt-1">View and manage all sales transactions</p>
         </div>
-        <Button leftIcon={<Download size={18} />}>
-          Export
-        </Button>
+        <div className="relative">
+          <Button
+            leftIcon={<Download size={18} />}
+            rightIcon={<ChevronDown size={16} />}
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            disabled={exportLoading}
+          >
+            {exportLoading ? 'Exporting...' : 'Export'}
+          </Button>
+
+          {/* Export Dropdown Menu */}
+          {showExportMenu && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10">
+              <div className="py-2">
+                <button
+                  onClick={exportToCSV}
+                  className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  disabled={exportLoading}
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                  <span>Export as CSV</span>
+                </button>
+                <button
+                  onClick={exportToJSON}
+                  className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  disabled={exportLoading}
+                >
+                  <FileJson className="h-4 w-4 text-blue-600" />
+                  <span>Export as JSON</span>
+                </button>
+                <button
+                  onClick={exportToPDF}
+                  className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  disabled={exportLoading}
+                >
+                  <FileText className="h-4 w-4 text-red-600" />
+                  <span>Export as PDF</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Date Filters */}
