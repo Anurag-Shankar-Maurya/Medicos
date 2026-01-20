@@ -116,7 +116,7 @@ export const SaleDetailPage = () => {
         </div>
         <div className="flex space-x-3">
           <Button
-            variant="outline"
+            variant="primary"
             leftIcon={<Printer size={18} />}
             onClick={() => setShowReceipt(true)}
           >
