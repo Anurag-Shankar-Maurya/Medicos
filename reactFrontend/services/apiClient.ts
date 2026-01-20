@@ -106,21 +106,22 @@ class ApiClient {
       const response = await fetch(`${BASE_URL}${endpoint}`, config);
       
       if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+
         if (response.status === 401) {
             localStorage.removeItem('auth_token');
             sessionStorage.removeItem('auth_token');
             window.location.pathname = '/login';
-            throw new Error('Session expired. Please login again.');
+            throw { status: response.status, data: errData, message: 'Session expired. Please login again.' };
         }
-        if (response.status === 403) throw new Error('You do not have permission to perform this action.');
-        if (response.status === 404) throw new Error('Resource not found.');
-        if (response.status >= 500) throw new Error('Server error. Please try again later.');
-        
-        const errData = await response.json().catch(() => ({}));
-        const errorMessage = errData.error || errData.detail || errData.message || 
+        if (response.status === 403) throw { status: response.status, data: errData, message: 'You do not have permission to perform this action.' };
+        if (response.status === 404) throw { status: response.status, data: errData, message: 'Resource not found.' };
+        if (response.status >= 500) throw { status: response.status, data: errData, message: 'Server error. Please try again later.' };
+
+        const errorMessage = errData.error || errData.detail || errData.message ||
                              (typeof errData === 'object' ? Object.values(errData).flat()[0] : null) ||
                              `API Error: ${response.statusText}`;
-        throw new Error(String(errorMessage));
+        throw { status: response.status, data: errData, message: String(errorMessage) };
       }
 
       if (response.status === 204) {

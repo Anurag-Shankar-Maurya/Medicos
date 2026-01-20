@@ -12,17 +12,90 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('remember_choice') === 'true');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{username?: string; password?: string; general?: string}>({});
   const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
+  const validateForm = () => {
+    const newErrors: {username?: string; password?: string} = {};
+
+    if (!username.trim()) {
+      newErrors.username = 'Username is required';
+    }
+
+    if (!password.trim()) {
+      newErrors.password = 'Password is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const getErrorMessage = (error: any) => {
+    // Handle network errors (fetch failures)
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      return 'Unable to connect to server. Please check your internet connection.';
+    }
+
+    // Handle structured errors from API client
+    if (error.status && error.message) {
+      const status = error.status;
+      const data = error.data;
+
+      switch (status) {
+        case 400:
+          // Bad request - likely missing fields
+          return data?.error || 'Please provide both username and password.';
+        case 401:
+          // Unauthorized - invalid credentials
+          return 'Invalid username or password. Please try again.';
+        case 403:
+          // Forbidden
+          return 'Access denied. Please contact your administrator.';
+        case 404:
+          // Not found
+          return 'Authentication service not available.';
+        case 429:
+          // Too many requests
+          return 'Too many login attempts. Please try again later.';
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          // Server errors
+          return 'Server error. Please try again later.';
+        default:
+          // Other errors
+          return error.message || 'An unexpected error occurred. Please try again.';
+      }
+    }
+
+    // Handle mock API errors or other generic errors
+    if (error.message) {
+      return error.message;
+    }
+
+    // Fallback
+    return 'An unexpected error occurred. Please try again.';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Clear previous errors
+    setErrors({});
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await apiClient.post<any>('/users/auth/login/', { username, password });
-      
+      const res = await apiClient.post<any>('/users/auth/login/', { username: username.trim(), password });
+
       // Store the preference for the next time the login page is visited
       if (rememberMe) {
         localStorage.setItem('remember_choice', 'true');
@@ -34,7 +107,9 @@ export const LoginPage = () => {
       addToast('Successfully logged in!', 'success');
       navigate('/');
     } catch (err: any) {
-      addToast(err.message || 'Login failed. Please check your credentials.', 'error');
+      const errorMessage = getErrorMessage(err);
+      setErrors({ general: errorMessage });
+      addToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -51,25 +126,45 @@ export const LoginPage = () => {
           <p className="mt-2 text-slate-600 dark:text-slate-400">Sign in to your Medicos dashboard</p>
         </div>
 
+        {errors.general && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-700 dark:text-red-400 text-sm">{errors.general}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
             label="Username"
             type="text"
             required
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              // Clear error when user starts typing
+              if (errors.username) {
+                setErrors(prev => ({ ...prev, username: undefined }));
+              }
+            }}
             icon={<UserIcon size={18} />}
             placeholder="admin"
+            error={errors.username}
           />
-          
+
           <Input
             label="Password"
             type="password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              // Clear error when user starts typing
+              if (errors.password) {
+                setErrors(prev => ({ ...prev, password: undefined }));
+              }
+            }}
             icon={<Lock size={18} />}
             placeholder="••••••••"
+            error={errors.password}
           />
 
           <div className="flex items-center justify-between text-sm">
@@ -89,10 +184,6 @@ export const LoginPage = () => {
             Sign In
           </Button>
         </form>
-
-        <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-          <p>Demo Credentials: user: admin, pass: any</p>
-        </div>
       </div>
     </div>
   );
