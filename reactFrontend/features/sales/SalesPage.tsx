@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Calendar, Eye, Download, Printer } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { PaginatedResponse, Sale } from '../../types';
@@ -34,6 +35,7 @@ const QUICK_DATE_FILTERS = [
 ];
 
 export const SalesPage = () => {
+  const navigate = useNavigate();
   const [sales, setSales] = useState<PaginatedResponse<Sale> | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -276,7 +278,11 @@ export const SalesPage = () => {
                   {sales?.results.map((sale) => {
                     const status = getStatus(sale);
                     return (
-                      <tr key={sale.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <tr
+                        key={sale.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer"
+                        onClick={() => navigate(`/sales/${sale.id}`)}
+                      >
                         <td className="py-4 px-6">
                           <div className="font-semibold text-slate-900 dark:text-white">
                             {sale.invoice_number}
@@ -312,23 +318,17 @@ export const SalesPage = () => {
                           </span>
                         </td>
                         <td className="py-4 px-6">
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              leftIcon={<Eye size={16} />}
-                            >
-                              View
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              leftIcon={<Printer size={16} />}
-                              onClick={() => handlePrintReceipt(sale)}
-                            >
-                              Print
-                            </Button>
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            leftIcon={<Printer size={16} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrintReceipt(sale);
+                            }}
+                          >
+                            Print
+                          </Button>
                         </td>
                       </tr>
                     );

@@ -7,6 +7,7 @@ import { MedicineList } from '../features/inventory/MedicineList';
 import { BillingPage } from '../features/billing/BillingPage';
 import { CartPage } from '../features/cart/CartPage';
 import { SalesPage } from '../features/sales/SalesPage';
+import { SaleDetailPage } from '../features/sales/SaleDetailPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import ReportsPage from '../features/reports/ReportsPage';
 import { StaffPage } from '../features/staff/StaffPage';
@@ -44,6 +45,7 @@ export const AppRouter = () => {
           <Route path="cart" element={<CartPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="sales" element={<SalesPage />} />
+          <Route path="sales/:id" element={<SaleDetailPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<StaffPage />} />
