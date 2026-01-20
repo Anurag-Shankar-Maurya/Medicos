@@ -109,10 +109,17 @@ class ApiClient {
         const errData = await response.json().catch(() => ({}));
 
         if (response.status === 401) {
-            localStorage.removeItem('auth_token');
-            sessionStorage.removeItem('auth_token');
-            window.location.pathname = '/login';
-            throw { status: response.status, data: errData, message: 'Session expired. Please login again.' };
+            // Only redirect to login if we have a token (session expired), not for login attempts
+            const hasToken = !!this.getToken();
+            if (hasToken) {
+                localStorage.removeItem('auth_token');
+                sessionStorage.removeItem('auth_token');
+                window.location.pathname = '/login';
+                throw { status: response.status, data: errData, message: 'Session expired. Please login again.' };
+            } else {
+                // For login attempts, just throw the error without redirecting
+                throw { status: response.status, data: errData, message: errData.error || 'Invalid credentials' };
+            }
         }
         if (response.status === 403) throw { status: response.status, data: errData, message: 'You do not have permission to perform this action.' };
         if (response.status === 404) throw { status: response.status, data: errData, message: 'Resource not found.' };
