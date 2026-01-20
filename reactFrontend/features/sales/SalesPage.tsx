@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Eye, Download } from 'lucide-react';
+import { Search, Filter, Calendar, Eye, Download, Printer } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { PaginatedResponse, Sale } from '../../types';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Spinner } from '../../components/common/Spinner';
+import { ReceiptModal } from '../../components/common/ReceiptModal';
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -40,6 +41,8 @@ export const SalesPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSale, setSelectedSale] = useState<any>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const fetchSales = async (page = 1) => {
     setLoading(true);
@@ -129,6 +132,17 @@ export const SalesPage = () => {
 
     setStartDate(formatDateForInput(start));
     setEndDate(formatDateForInput(end));
+  };
+
+  const handlePrintReceipt = async (sale: Sale) => {
+    try {
+      // Fetch the full sale details with items
+      const response = await apiClient.get<any>(`/medicines/sales/${sale.id}/`);
+      setSelectedSale(response);
+      setShowReceipt(true);
+    } catch (error: any) {
+      console.error('Failed to fetch sale details:', error);
+    }
   };
 
   return (
@@ -298,13 +312,23 @@ export const SalesPage = () => {
                           </span>
                         </td>
                         <td className="py-4 px-6">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            leftIcon={<Eye size={16} />}
-                          >
-                            View
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              leftIcon={<Eye size={16} />}
+                            >
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              leftIcon={<Printer size={16} />}
+                              onClick={() => handlePrintReceipt(sale)}
+                            >
+                              Print
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -342,6 +366,15 @@ export const SalesPage = () => {
           </>
         )}
       </div>
+
+      {/* Receipt Modal */}
+      {showReceipt && selectedSale && (
+        <ReceiptModal
+          sale={selectedSale}
+          isOpen={showReceipt}
+          onClose={() => setShowReceipt(false)}
+        />
+      )}
     </div>
   );
 };

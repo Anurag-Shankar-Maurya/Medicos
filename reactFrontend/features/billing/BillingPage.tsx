@@ -7,6 +7,7 @@ import { Input } from '../../components/common/Input';
 import { useToast } from '../../components/common/Toast';
 import { Spinner } from '../../components/common/Spinner';
 import { ClearCartModal } from '../../components/common/ClearCartModal';
+import { ReceiptModal, type Sale } from '../../components/common/ReceiptModal';
 import { useCart } from '../../app/CartContext';
 
 export const BillingPage = () => {
@@ -22,6 +23,8 @@ export const BillingPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'upi'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClearCartModalOpen, setIsClearCartModalOpen] = useState(false);
+  const [lastSale, setLastSale] = useState<Sale | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
   const { addToast } = useToast();
 
   const handleSearch = async (val: string) => {
@@ -72,7 +75,8 @@ export const BillingPage = () => {
         }))
       };
 
-      await apiClient.post('/medicines/sales/', saleData);
+      const response = await apiClient.post<Sale>('/medicines/sales/', saleData);
+      setLastSale(response);
       addToast("Sale completed successfully!", "success");
       clearCart();
       setCustomerName('');
@@ -84,6 +88,14 @@ export const BillingPage = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePrintReceipt = () => {
+    if (!lastSale) {
+      addToast("No recent sale found to print receipt", "error");
+      return;
+    }
+    setShowReceipt(true);
   };
 
   const onSelectFromSearch = (m: Medicine) => {
@@ -293,7 +305,13 @@ export const BillingPage = () => {
             >
                 Complete Payment
             </Button>
-            <Button variant="outline" className="w-full flex items-center justify-center" leftIcon={<Printer size={18} />}>
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center"
+              leftIcon={<Printer size={18} />}
+              onClick={handlePrintReceipt}
+              disabled={!lastSale}
+            >
                 Print Receipt
             </Button>
           </div>
@@ -308,6 +326,15 @@ export const BillingPage = () => {
           addToast('Cart cleared successfully', 'success');
         }}
       />
+
+      {/* Receipt Modal */}
+      {showReceipt && lastSale && (
+        <ReceiptModal
+          sale={lastSale}
+          isOpen={showReceipt}
+          onClose={() => setShowReceipt(false)}
+        />
+      )}
     </div>
   );
 };
