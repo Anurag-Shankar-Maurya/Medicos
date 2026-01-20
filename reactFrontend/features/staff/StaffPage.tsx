@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { Pagination } from '../../components/common/Pagination';
 import { Spinner } from '../../components/common/Spinner';
 import { useToast } from '../../components/common/Toast';
+import { useAuth } from '../../app/providers';
 import { Plus, Search, MoreHorizontal, Edit2, Trash2, Eye, UserCheck, UserX } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { StaffFormModal } from './StaffFormModal';
@@ -28,6 +29,9 @@ export const StaffPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
+  const { user } = useAuth();
+
+  const isAdmin = user?.role === 'admin';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -135,7 +139,7 @@ export const StaffPage = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff Management</h1>
           <p className="text-slate-500 dark:text-slate-400">Manage staff members, roles, and permissions.</p>
         </div>
-        <Button onClick={handleOpenAdd} leftIcon={<Plus size={18} />}>Add Staff Member</Button>
+        {isAdmin && <Button onClick={handleOpenAdd} leftIcon={<Plus size={18} />}>Add Staff Member</Button>}
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
@@ -162,20 +166,20 @@ export const StaffPage = () => {
                 <th className="px-6 py-4">Contact</th>
                 <th className="px-6 py-4">Employee ID</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Actions</th>
+                {isAdmin && <th className="px-6 py-4 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                  <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-slate-500">
+                    <td colSpan={isAdmin ? 6 : 5} className="px-6 py-20 text-center text-slate-500">
                         <Spinner className="mx-auto mb-2" />
                         <span>Loading staff members...</span>
                     </td>
                  </tr>
               ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8">
+                    <td colSpan={isAdmin ? 6 : 5} className="p-8">
                        <EmptyState
                           title="No staff members found"
                           description={searchQuery ? `No results found for "${searchQuery}"` : "Get started by adding your first staff member."}
@@ -216,66 +220,68 @@ export const StaffPage = () => {
                       {user.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="relative inline-block text-left">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenu(activeMenu === user.id ? null : user.id);
-                        }}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                      >
-                        <MoreHorizontal size={20} />
-                      </button>
+                  {isAdmin && (
+                    <td className="px-6 py-4 text-center">
+                      <div className="relative inline-block text-left">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenu(activeMenu === user.id ? null : user.id);
+                          }}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        >
+                          <MoreHorizontal size={20} />
+                        </button>
 
-                      {activeMenu === user.id && (
-                        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-50 overflow-hidden border border-slate-200 dark:border-slate-700">
-                          <div className="py-1" role="menu">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEdit(user);
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                              role="menuitem"
-                            >
-                              <Edit2 size={16} className="mr-3 text-slate-400" /> Edit Staff
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleUserStatus(user);
-                              }}
-                              className={`flex items-center w-full px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${
-                                user.is_active ? 'text-red-600' : 'text-green-600'
-                              }`}
-                              role="menuitem"
-                            >
-                              {user.is_active ? (
-                                <>
-                                  <UserX size={16} className="mr-3" /> Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck size={16} className="mr-3" /> Activate
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenDelete(user);
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                              role="menuitem"
-                            >
-                              <Trash2 size={16} className="mr-3" /> Delete
-                            </button>
+                        {activeMenu === user.id && (
+                          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-50 overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <div className="py-1" role="menu">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEdit(user);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                role="menuitem"
+                              >
+                                <Edit2 size={16} className="mr-3 text-slate-400" /> Edit Staff
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleUserStatus(user);
+                                }}
+                                className={`flex items-center w-full px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${
+                                  user.is_active ? 'text-red-600' : 'text-green-600'
+                                }`}
+                                role="menuitem"
+                              >
+                                {user.is_active ? (
+                                  <>
+                                    <UserX size={16} className="mr-3" /> Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck size={16} className="mr-3" /> Activate
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenDelete(user);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                role="menuitem"
+                              >
+                                <Trash2 size={16} className="mr-3" /> Delete
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -291,21 +297,25 @@ export const StaffPage = () => {
         />
       </div>
 
-      <StaffFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => fetchUsers(currentPage, searchQuery)}
-        user={selectedUser}
-      />
+      {isAdmin && (
+        <>
+          <StaffFormModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSuccess={() => fetchUsers(currentPage, searchQuery)}
+            user={selectedUser}
+          />
 
-      <DeleteConfirmModal
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={confirmDelete}
-        loading={deleting}
-        title="Delete Staff Member"
-        message={`Are you sure you want to delete ${selectedUser?.first_name} ${selectedUser?.last_name}? This action cannot be undone.`}
-      />
+          <DeleteConfirmModal
+            isOpen={isDeleteOpen}
+            onClose={() => setIsDeleteOpen(false)}
+            onConfirm={confirmDelete}
+            loading={deleting}
+            title="Delete Staff Member"
+            message={`Are you sure you want to delete ${selectedUser?.first_name} ${selectedUser?.last_name}? This action cannot be undone.`}
+          />
+        </>
+      )}
     </div>
   );
 };
