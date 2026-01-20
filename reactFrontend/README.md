@@ -124,11 +124,13 @@ npm run build
 
 <br />
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📄 Copyright & License
+Copyright © 2026 Anurag Shankar Maurya. All rights reserved.
+
+This project is proprietary software. Unauthorized copying, distribution, or use is prohibited. See the [LICENSE](LICENSE) file for the full legal notice.
 
 <hr />
 
 <div align="center">
-  <sub>Built with ❤️ by the Medicos Team</sub>
+  <sub>Developed by Anurag Shankar Maurya</sub>
 </div>
