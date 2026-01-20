@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# @project Medicos Dashboard
+# @author Anurag Shankar Maurya
+# @copyright © 2026 Anurag Shankar Maurya. All rights reserved.
+# @license Proprietary
+
 """Django's command-line utility for administrative tasks."""
 import os
 import sys

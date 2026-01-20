@@ -1,5 +1,8 @@
 {
   "name": "Medicos Dashboard",
   "description": "A professional pharmacy management and billing dashboard featuring inventory tracking, sales analytics, and POS capabilities.",
+  "version": "1.0.0",
+  "author": "Anurag Shankar Maurya",
+  "copyright": "© 2026 Anurag Shankar Maurya. All rights reserved.",
   "requestFramePermissions": []
 }
