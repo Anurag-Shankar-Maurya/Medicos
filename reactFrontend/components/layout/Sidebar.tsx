@@ -19,7 +19,7 @@ import { useAuth, useTheme } from '../../app/providers';
 import { useCart } from '../../app/CartContext';
 import { NotificationDropdown } from './NotificationDropdown';
 import { apiClient } from '../../services/apiClient';
-import logo from '../../logo.svg';
+import logo from '/public/logo.svg';
 
 interface SidebarProps {
   onClose?: () => void;
