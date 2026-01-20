@@ -262,10 +262,17 @@ export const SalesPage = () => {
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
             .summary { background: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 8px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+            .summary-item { background: white; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb; }
+            .summary-label { font-size: 12px; color: #6b7280; margin-bottom: 5px; }
+            .summary-value { font-size: 18px; font-weight: bold; color: #1f2937; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
             th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
             th { background: #f9fafb; font-weight: bold; }
             .total-row { background: #fef3c7; font-weight: bold; }
+            .status-paid { color: #059669; }
+            .status-partial { color: #d97706; }
+            .status-unpaid { color: #dc2626; }
             @media print { body { margin: 0; } }
           </style>
         </head>
@@ -273,20 +280,36 @@ export const SalesPage = () => {
           <h1>Sales Report</h1>
           <div class="summary">
             <h3>Report Summary</h3>
-            <p><strong>Total Sales:</strong> ${totalSales}</p>
-            <p><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</p>
-            <p><strong>Total Paid:</strong> ₹${totalPaid.toFixed(2)}</p>
-            <p><strong>Report Date:</strong> ${new Date().toLocaleDateString()}</p>
-            ${startDate || endDate ? `<p><strong>Date Range:</strong> ${startDate || 'Start'} to ${endDate || 'End'}</p>` : ''}
+            <div class="summary-grid">
+              <div class="summary-item">
+                <div class="summary-label">Total Sales</div>
+                <div class="summary-value">${totalSales}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Amount</div>
+                <div class="summary-value">₹${totalAmount.toFixed(2)}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Total Paid</div>
+                <div class="summary-value">₹${totalPaid.toFixed(2)}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Report Date</div>
+                <div class="summary-value">${new Date().toLocaleDateString()}</div>
+              </div>
+            </div>
+            ${startDate || endDate ? `<p style="margin-top: 15px;"><strong>Date Range:</strong> ${startDate || 'Start'} to ${endDate || 'End'}</p>` : ''}
           </div>
 
           <table>
             <thead>
               <tr>
-                <th>Invoice</th>
+                <th>Invoice #</th>
                 <th>Customer</th>
+                <th>Contact</th>
                 <th>Date</th>
                 <th>Total Amount</th>
+                <th>Paid Amount</th>
                 <th>Payment Method</th>
                 <th>Status</th>
               </tr>
@@ -294,20 +317,24 @@ export const SalesPage = () => {
             <tbody>
               ${exportData.map(sale => {
                 const status = getStatus(sale);
+                const statusClass = status.label.toLowerCase();
                 return `
                   <tr>
                     <td>${sale.invoice_number}</td>
                     <td>${sale.customer_name || 'Walk-in Customer'}</td>
+                    <td>${sale.customer_contact || '-'}</td>
                     <td>${formatDate(sale.sale_date)}</td>
                     <td>₹${sale.total_amount}</td>
+                    <td>₹${sale.amount_paid}</td>
                     <td>${sale.payment_method.replace('_', ' ')}</td>
-                    <td>${status.label}</td>
+                    <td class="status-${statusClass}">${status.label}</td>
                   </tr>
                 `;
               }).join('')}
               <tr class="total-row">
-                <td colspan="3"><strong>Totals</strong></td>
+                <td colspan="4"><strong>Totals</strong></td>
                 <td><strong>₹${totalAmount.toFixed(2)}</strong></td>
+                <td><strong>₹${totalPaid.toFixed(2)}</strong></td>
                 <td colspan="2"></td>
               </tr>
             </tbody>

@@ -23,7 +23,10 @@ import {
   FileText,
   TrendingDown,
   Target,
-  Zap
+  Zap,
+  ChevronDown,
+  FileSpreadsheet,
+  FileJson
 } from 'lucide-react';
 
 interface ReportData {
@@ -47,6 +50,8 @@ const ReportsPage: React.FC = () => {
     requires_prescription: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const reports = [
     {
@@ -178,18 +183,370 @@ const ReportsPage: React.FC = () => {
     fetchReportData();
   }, [activeReport]);
 
-  const handleExport = () => {
-    // Simple CSV export functionality
-    if (!reportData) return;
+  const exportToCSV = async () => {
+    setExportLoading(true);
+    try {
+      // Convert report data to CSV format
+      const flattenObject = (obj: any, prefix = ''): any => {
+        const flattened: any = {};
+        for (const key in obj) {
+          if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+            Object.assign(flattened, flattenObject(obj[key], prefix + key + '.'));
+          } else {
+            flattened[prefix + key] = obj[key];
+          }
+        }
+        return flattened;
+      };
 
-    const dataStr = JSON.stringify(reportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${activeReport}-report.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+      // For tabular reports, extract the main data array
+      let csvData: any[] = [];
+      const headers: string[] = [];
+
+      if (Array.isArray(reportData)) {
+        csvData = reportData;
+      } else {
+        // Find the main data array in the report
+        const dataKeys = Object.keys(reportData).filter(key =>
+          Array.isArray(reportData[key]) && reportData[key].length > 0
+        );
+
+        if (dataKeys.length > 0) {
+          csvData = reportData[dataKeys[0]];
+          // Add a column to indicate which report this is
+          csvData = csvData.map(item => ({ ...item, report_type: activeReport.replace('-', ' ') }));
+        } else {
+          // Fallback: create a single row with flattened data
+          csvData = [flattenObject(reportData)];
+        }
+      }
+
+      if (csvData.length === 0) {
+        alert('No data available for export');
+        return;
+      }
+
+      // Get all possible headers
+      const allKeys = new Set<string>();
+      csvData.forEach(item => {
+        if (typeof item === 'object') {
+          Object.keys(item).forEach(key => allKeys.add(key));
+        }
+      });
+
+      const csvHeaders = Array.from(allKeys);
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvData.map(row =>
+          csvHeaders.map(header => {
+            const value = row[header];
+            if (value === null || value === undefined) return '';
+            const stringValue = String(value);
+            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+          }).join(',')
+        )
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${activeReport}-report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setShowExportMenu(false);
+    } catch (error: any) {
+      console.error('Failed to export CSV:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportToJSON = async () => {
+    setExportLoading(true);
+    try {
+      // Create enhanced JSON export with metadata
+      const exportObject = {
+        export_info: {
+          generated_at: new Date().toISOString(),
+          report_type: activeReport,
+          report_name: reports.find(r => r.id === activeReport)?.name || activeReport,
+          filters_applied: {
+            date_range: dateRange.start_date || dateRange.end_date ? {
+              start_date: dateRange.start_date || null,
+              end_date: dateRange.end_date || null
+            } : null,
+            search_term: searchTerm || null,
+            limit: filters.limit,
+            period: filters.period
+          },
+          generated_by: 'Medicos Pharmacy Management System'
+        },
+        data: reportData
+      };
+
+      // Create and download JSON file
+      const jsonContent = JSON.stringify(exportObject, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${activeReport}-report_${new Date().toISOString().split('T')[0]}.json`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setShowExportMenu(false);
+    } catch (error: any) {
+      console.error('Failed to export JSON:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    setExportLoading(true);
+    try {
+      // For PDF export, we'll use the browser's print functionality
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to export PDF');
+        return;
+      }
+
+      const reportTitle = reports.find(r => r.id === activeReport)?.name || activeReport;
+
+      const renderTableForReport = (data: any, reportType: string) => {
+        switch (reportType) {
+          case 'stock-status':
+            if (data.low_stock?.length > 0) {
+              return `
+                <h2>Low Stock Medicines</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Medicine</th>
+                      <th>Strength</th>
+                      <th>Current Stock</th>
+                      <th>Reorder Level</th>
+                      <th>Shortage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.low_stock.map((medicine: any) => `
+                      <tr>
+                        <td>${medicine.name}</td>
+                        <td>${medicine.strength}</td>
+                        <td>${medicine.quantity_in_stock}</td>
+                        <td>${medicine.reorder_level}</td>
+                        <td>${medicine.shortage || 0}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              `;
+            }
+            if (data.out_of_stock?.length > 0) {
+              return `
+                <h2>Out of Stock Medicines</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Medicine</th>
+                      <th>Strength</th>
+                      <th>Manufacturer</th>
+                      <th>Last Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.out_of_stock.map((medicine: any) => `
+                      <tr>
+                        <td>${medicine.name}</td>
+                        <td>${medicine.strength}</td>
+                        <td>${medicine.manufacturer}</td>
+                        <td>${new Date(medicine.updated_at).toLocaleDateString()}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              `;
+            }
+            return '<p>No stock issues found.</p>';
+
+          case 'medicine-catalog':
+            return `
+              <h2>Medicine Catalog (${data.count || 0} items)</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Manufacturer</th>
+                    <th>Stock</th>
+                    <th>Selling Price</th>
+                    <th>GST %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.medicines?.map((medicine: any) => `
+                    <tr>
+                      <td>${medicine.name} (${medicine.strength})</td>
+                      <td>${medicine.medicine_type}</td>
+                      <td>${medicine.manufacturer}</td>
+                      <td>${medicine.quantity_in_stock}</td>
+                      <td>₹${medicine.selling_price}</td>
+                      <td>${medicine.gst_percentage}%</td>
+                    </tr>
+                  `).join('') || '<tr><td colspan="6">No medicines found</td></tr>'}
+                </tbody>
+              </table>
+            `;
+
+          case 'profit-margin':
+            if (data.high_profit_medicines?.length > 0) {
+              return `
+                <h2>High Profit Medicines</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Medicine</th>
+                      <th>Purchase Price</th>
+                      <th>Selling Price</th>
+                      <th>Profit Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.high_profit_medicines.map((medicine: any) => `
+                      <tr>
+                        <td>${medicine.name} (${medicine.strength})</td>
+                        <td>₹${medicine.purchase_price}</td>
+                        <td>₹${medicine.selling_price}</td>
+                        <td>${medicine.profit_margin?.toFixed(1)}%</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              `;
+            }
+            return '<p>No profit margin data available.</p>';
+
+          case 'top-selling-medicines':
+            return `
+              <h2>Top Selling Medicines</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Medicine</th>
+                    <th>Type</th>
+                    <th>Manufacturer</th>
+                    <th>Quantity Sold</th>
+                    <th>Total Revenue</th>
+                    <th>Orders</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.top_medicines?.map((medicine: any, index: number) => `
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td>${medicine.medicine__name}</td>
+                      <td>${medicine.medicine__medicine_type}</td>
+                      <td>${medicine.medicine__manufacturer}</td>
+                      <td>${medicine.total_quantity}</td>
+                      <td>₹${medicine.total_revenue?.toFixed(2)}</td>
+                      <td>${medicine.order_count}</td>
+                    </tr>
+                  `).join('') || '<tr><td colspan="7">No sales data found</td></tr>'}
+                </tbody>
+              </table>
+            `;
+
+          case 'payment-method-analysis':
+            return `
+              <h2>Payment Method Analysis</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Payment Method</th>
+                    <th>Transactions</th>
+                    <th>Total Amount</th>
+                    <th>Average Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.payment_methods?.map((method: any) => `
+                    <tr>
+                      <td>${method.payment_method.replace('_', ' ')}</td>
+                      <td>${method.transaction_count}</td>
+                      <td>₹${method.total_amount?.toFixed(2)}</td>
+                      <td>₹${method.average_amount?.toFixed(2)}</td>
+                    </tr>
+                  `).join('') || '<tr><td colspan="4">No payment data found</td></tr>'}
+                </tbody>
+              </table>
+            `;
+
+          default:
+            return `<div style="font-family: monospace; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</div>`;
+        }
+      };
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${reportTitle} - Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+            h2 { color: #374151; margin-top: 30px; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 30px; font-size: 12px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+            th { background: #f9fafb; font-weight: bold; }
+            .summary { background: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 8px; }
+            @media print { body { margin: 0; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <h1>${reportTitle}</h1>
+          <div class="summary">
+            <h3>Report Summary</h3>
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Report Type:</strong> ${activeReport.replace('-', ' ')}</p>
+            ${dateRange.start_date || dateRange.end_date ? `<p><strong>Date Range:</strong> ${dateRange.start_date || 'Start'} to ${dateRange.end_date || 'End'}</p>` : ''}
+            ${searchTerm ? `<p><strong>Search Term:</strong> ${searchTerm}</p>` : ''}
+          </div>
+
+          ${renderTableForReport(reportData, activeReport)}
+
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close();
+      };
+
+      setShowExportMenu(false);
+    } catch (error: any) {
+      console.error('Failed to export PDF:', error);
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const renderReportContent = () => {
@@ -274,14 +631,48 @@ const ReportsPage: React.FC = () => {
                 <Filter className="w-4 h-4" />
                 Filters
               </Button>
-              <Button
-                onClick={handleExport}
-                disabled={!reportData}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
+              <div className="relative">
+                <Button
+                  leftIcon={<Download size={18} />}
+                  rightIcon={<ChevronDown size={16} />}
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  disabled={!reportData || exportLoading}
+                >
+                  {exportLoading ? 'Exporting...' : 'Export'}
+                </Button>
+
+                {/* Export Dropdown Menu */}
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-10">
+                    <div className="py-2">
+                      <button
+                        onClick={exportToCSV}
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        disabled={exportLoading}
+                      >
+                        <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                        <span>Export as CSV</span>
+                      </button>
+                      <button
+                        onClick={exportToJSON}
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        disabled={exportLoading}
+                      >
+                        <FileJson className="h-4 w-4 text-blue-600" />
+                        <span>Export as JSON</span>
+                      </button>
+                      <button
+                        onClick={exportToPDF}
+                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        disabled={exportLoading}
+                      >
+                        <FileText className="h-4 w-4 text-red-600" />
+                        <span>Export as PDF</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
