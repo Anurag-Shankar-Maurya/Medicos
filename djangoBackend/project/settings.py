@@ -152,8 +152,13 @@ REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
 
-# CORS (development convenience)
+# CORS settings
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
+CORS_ALLOWED_ORIGINS = []
+if not CORS_ALLOW_ALL_ORIGINS:
+    cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+    if cors_origins:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
 # REST framework settings
 REST_FRAMEWORK = {
